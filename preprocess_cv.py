@@ -48,7 +48,7 @@ def emotion(audio_file):
 	max_label = 6
 	max_label_text = ""
 	for p in preds:
-		if p['score'] > max_score and p['score'] > 0.3:
+		if p['score'] > max_score and p['score'] > 0.25:
 			max_score = p['score']
 			max_label = emotions[p["label"]]
 			max_label_text = p["label"]
@@ -90,6 +90,10 @@ def prepare_data():
 				formatted_sample['age'] = line['age']
 				formatted_sample['gender'] = line['gender']
 				formatted_sample['language'] = line['locale']
+				
+				if (line['client_id'] == None or line['path'] == None or line['sentence'] == None or line['age'] == None or line['gender'] == None or line['locale'] == None):
+					print("Faulty line: ", line)
+					continue
 				
 				# '0' non irony, '1' irony
 				formatted_sample['irony'] = irony(translate(formatted_sample['sentence']))
