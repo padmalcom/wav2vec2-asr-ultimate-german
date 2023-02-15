@@ -46,14 +46,14 @@ def emotion(audio_file):
 	preds = audio_classifier(audio_file)
 	max_score = 0
 	max_label = 6
-	max_label_text = ""
+	max_label_text = 'neutral'
 	for p in preds:
 		if p['score'] > max_score and p['score'] > 0.25:
 			max_score = p['score']
 			max_label = emotions[p["label"]]
 			max_label_text = p["label"]
 			print("There is an emotional file:", max_label_text)
-	return max_label
+	return max_label_text
 	
 ### translation
 TRANSLATION_MODEL_NAME = "facebook/wmt19-de-en"
@@ -91,7 +91,7 @@ def prepare_data():
 				formatted_sample['gender'] = line['gender']
 				formatted_sample['language'] = line['locale']
 				
-				if (line['client_id'] == None or line['path'] == None or line['sentence'] == None or line['age'] == None or line['gender'] == None or line['locale'] == None):
+				if (line['client_id'] == None or line['path'] == None or line['sentence'] == None or line['age'] == None or line['gender'] == None or line['locale'] == None or line['client_id'].strip() == '' or line['path'].strip() == '' or line['sentence'].strip() == '' or line['age'].strip() == '' or line['gender'].strip() == '' or line['locale'].strip() == ''):
 					print("Faulty line: ", line)
 					continue
 				

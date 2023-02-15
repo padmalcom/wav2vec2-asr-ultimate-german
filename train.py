@@ -17,12 +17,13 @@ import torch
 
 @dataclass
 class DataTrainingArguments:
-	dataset_name = "emotion" # TODO: change to custom
+	#dataset_name = "emotion" # TODO: change to custom
 	dataset_config_name = None
 	train_split_name = "train"
 	validation_split_name = "validation"
 	target_text_column = "sentence"
 	speech_file_column = "file"
+	age_column = "age"
 	target_feature_extractor_sampling_rate = False
 	max_duration_in_seconds = None
 	orthography = "librispeech"
@@ -191,13 +192,18 @@ if __name__ == "__main__":
 	dataset = datasets.load_dataset('csv', data_files={'train': 'train.csv', 'test': 'test.csv'})
 	print(dataset)
 	
+	# create label maps
+	cls_emotion_label_map = {'anger':0, 'boredom':1, 'disgust':2, 'fear':3, 'happiness':4, 'sadness':5, 'neutral':6}
+	cls_age_label_map = {'teens':0, 'twenties': 1, 'thirties': 2, 'fourties': 3, 'fifties': 4, 'sixties': 5, 'seventies': 6}
+	cls_gender_label_map = {'female': 0, 'male': 1}
+	
 	# Load model
 	model = Wav2Vec2ForCTCnCLS.from_pretrained(
 		model_args.model_name_or_path,
 		cache_dir=model_args.cache_dir,
 		gradient_checkpointing=False,
 		vocab_size=len(processor.tokenizer),
-		cls_len=7, # there are 7 emotions
+		cls_len=len(cls_age_label_map),
 		alpha=model_args.alpha,
 	)
 	
@@ -223,16 +229,16 @@ if __name__ == "__main__":
 	
 	train_dataset = dataset.map(prepare_example, remove_columns=[data_args.speech_file_column])['train']
 	val_dataset = dataset.map(prepare_example, remove_columns=[data_args.speech_file_column])['test']
-	
+			
 	print(train_dataset)
 	print(val_dataset)
 	
 	def prepare_dataset(batch, audio_only=False):
 		batch["input_values"] = processor(batch["speech"], sampling_rate=batch["sampling_rate"][0]).input_values
 		if audio_only is False:
-			print("Batch emotion:", batch["emotion"])
+			print("Batch age:", batch[data_args.age_column])
 			#cls_labels = list(map(lambda e: cls_label_map[e], batch["emotion"]))
-			cls_labels = batch["emotion"]
+			cls_labels = list(map(lambda e: cls_age_label_map[e], batch[data_args.age_column]))# batch[data_args.age_column]
 			with processor.as_target_processor():
 				batch["labels"] = processor(batch[data_args.target_text_column]).input_ids
 			for i in range(len(cls_labels)):
