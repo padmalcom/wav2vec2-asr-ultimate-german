@@ -91,7 +91,7 @@ def prepare_data():
 				formatted_sample['gender'] = line['gender']
 				formatted_sample['language'] = line['locale']
 				
-				if (line['client_id'] == None or line['path'] == None or line['sentence'] == None or line['age'] == None or line['gender'] == None or line['locale'] == None or line['client_id'].strip() == '' or line['path'].strip() == '' or line['sentence'].strip() == '' or line['age'].strip() == '' or line['gender'].strip() == '' or line['locale'].strip() == ''):
+				if (formatted_sample['sentence'] == None or line['client_id'] == None or line['path'] == None or line['sentence'] == None or line['age'] == None or line['gender'] == None or line['locale'] == None or line['client_id'].strip() == '' or line['path'].strip() == '' or line['sentence'].strip() == '' or line['age'].strip() == '' or line['gender'].strip() == '' or line['locale'].strip() == '' or formatted_sample['sentence'].strip() == ''):
 					print("Faulty line: ", line)
 					continue
 				

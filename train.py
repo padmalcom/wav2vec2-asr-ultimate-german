@@ -173,6 +173,8 @@ if __name__ == "__main__":
 	model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 	# TODO: Load checkpoint
 	
+	base_path = os.path.join("E:", os.sep, "Datasets", "common-voice-12")
+	
 	orthography = Orthography()
 	orthography.tokenizer = model_args.tokenizer
 	
@@ -189,7 +191,7 @@ if __name__ == "__main__":
 	processor = Wav2Vec2Processor(feature_extractor, tokenizer)
 	
 	# Load dataset
-	dataset = datasets.load_dataset('csv', data_files={'train': 'train.csv', 'test': 'test.csv'})
+	dataset = datasets.load_dataset('csv', data_files={'train': os.path.join(base_path, 'train.csv'), 'test': os.path.join(base_path, 'test.csv')})
 	print(dataset)
 	
 	# create label maps
@@ -219,13 +221,17 @@ if __name__ == "__main__":
 	)
 	
 	def prepare_example(example, audio_only=False):
-		example["speech"], example["sampling_rate"] = librosa.load(os.path.join("common-voice-12", "wavs", example[data_args.speech_file_column]), sr=target_sr)
+		example["speech"], example["sampling_rate"] = librosa.load(os.path.join(base_path, "wavs", example[data_args.speech_file_column]), sr=target_sr)
 		if audio_only is False:
+			print("Example:", example[data_args.target_text_column])
 			updated_text = " ".join(example[data_args.target_text_column].split()) # remove whitespaces
 			updated_text = vocabulary_text_cleaner.sub("", updated_text)
 			if updated_text != example[data_args.target_text_column]:
 				example[data_args.target_text_column] = updated_text
 		return example
+	
+	# remove samples without text
+	dataset = dataset.filter(lambda example: example[data_args.target_text_column])
 	
 	train_dataset = dataset.map(prepare_example, remove_columns=[data_args.speech_file_column])['train']
 	val_dataset = dataset.map(prepare_example, remove_columns=[data_args.speech_file_column])['test']
