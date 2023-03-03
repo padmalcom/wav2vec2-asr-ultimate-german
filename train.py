@@ -173,7 +173,8 @@ if __name__ == "__main__":
 	model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 	# TODO: Load checkpoint
 	
-	base_path = os.path.join("E:", os.sep, "Datasets", "common-voice-12")
+	#base_path = os.path.join("E:", os.sep, "Datasets", "common-voice-12")
+	base_path = os.path.join("common-voice-12")
 	
 	orthography = Orthography()
 	orthography.tokenizer = model_args.tokenizer
@@ -229,10 +230,7 @@ if __name__ == "__main__":
 			if updated_text != example[data_args.target_text_column]:
 				example[data_args.target_text_column] = updated_text
 		return example
-	
-	# remove samples without text
-	dataset = dataset.filter(lambda example: example[data_args.target_text_column])
-	
+		
 	train_dataset = dataset.map(prepare_example, remove_columns=[data_args.speech_file_column])['train']
 	val_dataset = dataset.map(prepare_example, remove_columns=[data_args.speech_file_column])['test']
 			
