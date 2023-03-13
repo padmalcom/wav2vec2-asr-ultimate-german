@@ -4,8 +4,7 @@ from transformers import (
 	HfArgumentParser,
 	Wav2Vec2FeatureExtractor,
 	Wav2Vec2CTCTokenizer,
-	Wav2Vec2Processor,
-	Trainer
+	Wav2Vec2Processor
 )
 import datasets
 import evaluate
@@ -14,10 +13,12 @@ import re
 import librosa
 import os
 import torch
+from ctctrainer import CTCTrainer
+from orthography import Orthography
+from datacollator import DataCollatorCTCWithPadding
 
 @dataclass
 class DataTrainingArguments:
-	#dataset_name = "emotion" # TODO: change to custom
 	dataset_config_name = None
 	train_split_name = "train"
 	validation_split_name = "validation"
@@ -48,126 +49,7 @@ class TrainingArgs:
 	seed = 42
 	skip_memory_metrics = True
 	# TODO: Add other arguments
-	
-@dataclass
-class Orthography:
-	do_lower_case = False
-	vocab_file = None
-	word_delimiter_token = "|"
-	translation_table = {}
-	words_to_remove = set()
-	untransliterator = None
-	tokenizer = None
-	
-class DataCollatorCTCWithPadding:
-	def __init__(self, processor, padding):
-		self.processor = processor
-		self.padding = padding
-		self.max_length = None
-		self.max_length_labels = None
-		self.pad_to_multiple_of = None
-		self.pad_to_multiple_of_labels = None
-		self.audio_only = False
-
-	def __call__(self, features):
-		# split inputs and labels since they have to be of different lenghts and need
-		# different padding methods
-		input_features = [{"input_values": feature["input_values"]} for feature in features]
-		if self.audio_only is False:
-			label_features = [{"input_ids": feature["labels"][:-1]} for feature in features]
-			cls_labels = [feature["labels"][-1] for feature in features]
-
-		batch = self.processor.pad(
-			input_features,
-			padding=self.padding,
-			max_length=self.max_length,
-			pad_to_multiple_of=self.pad_to_multiple_of,
-			return_tensors="pt",
-		)
-		if self.audio_only is False:
-			with self.processor.as_target_processor():
-				labels_batch = self.processor.pad(
-					label_features,
-					padding=self.padding,
-					max_length=self.max_length_labels,
-					pad_to_multiple_of=self.pad_to_multiple_of_labels,
-					return_tensors="pt",
-				)
-
-			# replace padding with -100 to ignore loss correctly
-			ctc_labels = labels_batch["input_ids"].masked_fill(labels_batch.attention_mask.ne(1), -100)
-			batch["labels"] = (ctc_labels, torch.tensor(cls_labels)) # labels = (ctc_labels, cls_labels)
-
-		return batch
-		
-class CTCTrainer(Trainer):
-	def _prepare_inputs(self, inputs):
-		for k, v in inputs.items():
-			#print("Key:", k, "value:", v)
-			if isinstance(v, torch.Tensor):
-				kwargs = dict(device=self.args.device)
-				if self.deepspeed and inputs[k].dtype != torch.int64:
-					kwargs.update(dict(dtype=self.args.hf_deepspeed_config.dtype()))
-				inputs[k] = v.to(**kwargs)
-
-			if k == 'labels': # labels are list of tensor, not tensor, special handle here
-				#inputs[k] = inputs[k].to(**kwargs)
-				new_labels = []
-				for i in range(len(inputs[k])):
-				#	kwargs = dict(device=self.args.device)
-					#print("Input: ", inputs[k][i], "type: ", type(inputs[k][i]))
-				#	if self.deepspeed and inputs[k][i].dtype != torch.int64:
-				#		kwargs.update(dict(dtype=self.args.hf_deepspeed_config.dtype()))
-				#	inputs[k][i] = inputs[k][i].to(**kwargs)
-					new_labels.append(inputs[k][i].to(**kwargs))
-				inputs[k] = tuple(new_labels)
 				
-
-		if self.args.past_index >= 0 and self._past is not None:
-			inputs["mems"] = self._past
-
-		return inputs
-
-	def training_step(self, model, inputs):
-		"""
-		Perform a training step on a batch of inputs.
-
-		Subclass and override to inject custom behavior.
-
-		Args:
-			model (:obj:`nn.Module`):
-				The model to train.
-			inputs (:obj:`Dict[str, Union[torch.Tensor, Any]]`):
-				The inputs and targets of the model.
-
-				The dictionary will be unpacked before being fed to the model. Most models expect the targets under the
-				argument :obj:`labels`. Check your model's documentation for all accepted arguments.
-
-		Return:
-			:obj:`torch.Tensor`: The tensor with training loss on this batch.
-		"""
-
-		model.train()
-		inputs = self._prepare_inputs(inputs)
-
-		loss = self.compute_loss(model, inputs)
-
-		if self.args.n_gpu > 1:
-			loss = loss.mean()
-
-		if self.args.gradient_accumulation_steps > 1:
-			loss = loss / self.args.gradient_accumulation_steps
-
-		if self.use_apex:
-			with amp.scale_loss(loss, self.optimizer) as scaled_loss:
-				scaled_loss.backward()
-		elif self.deepspeed:
-			self.deepspeed.backward(loss)
-		else:
-			loss.backward()
-
-		return loss.detach()
-	
 if __name__ == "__main__":
 	parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
 	model_args, data_args, training_args = parser.parse_args_into_dataclasses()
@@ -178,6 +60,7 @@ if __name__ == "__main__":
 	
 	orthography = Orthography()
 	orthography.tokenizer = model_args.tokenizer
+	print("Ortho: ", orthography.tokenizer)
 	
 	# create processor
 	feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(
@@ -193,7 +76,9 @@ if __name__ == "__main__":
 	
 	# Load dataset
 	dataset = datasets.load_dataset('csv', data_files={'train': os.path.join(base_path, 'train.csv'), 'test': os.path.join(base_path, 'test.csv')})
-	print(dataset)
+	print("Dataset:", dataset)
+	print("Test:", dataset['test'])
+	print("Test0:", dataset['test'][0])
 	
 	# create label maps
 	cls_emotion_label_map = {'anger':0, 'boredom':1, 'disgust':2, 'fear':3, 'happiness':4, 'sadness':5, 'neutral':6}
@@ -291,6 +176,7 @@ if __name__ == "__main__":
 	if model_args.freeze_feature_extractor:
 		model.freeze_feature_extractor()
 		
+	print("Val dataset:", val_dataset)
 	trainer = CTCTrainer(
 		model=model,
 		data_collator=data_collator,
