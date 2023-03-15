@@ -5,7 +5,8 @@ from transformers import Wav2Vec2CTCTokenizer
 def build_tokenizer(model_output_dir, dataset, num_proc):
 
 	def extract_all_chars(batch):
-		all_text = " ".join(batch["sentence"]).replace("<unk>", "")
+		cleared_batch = [x for x in batch["sentence"] if x is not None]
+		all_text = " ".join(cleared_batch).replace("<unk>", "")
 		return {"all_text": [all_text]}
 
 	vocab_train = dataset.map(
