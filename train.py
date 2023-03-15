@@ -83,7 +83,7 @@ if __name__ == "__main__":
 	#	do_lower_case=orthography.do_lower_case,
 	#	word_delimiter_token=orthography.word_delimiter_token
 	#)
-	tokenizer = build_tokenizer(training_args.output_dir, dataset['train'], data_args.preprocessing_num_workers)
+	tokenizer = build_tokenizer(training_args.output_dir, dataset['train'].copy(), data_args.preprocessing_num_workers)
 	processor = Wav2Vec2Processor(feature_extractor, tokenizer)
 	
 
