@@ -17,7 +17,7 @@ from datacollator import DataCollatorCTCWithPadding
 disable_caching()
 
 cls_age_label_map = {'teens':0, 'twenties': 1, 'thirties': 2, 'fourties': 3, 'fifties': 4, 'sixties': 5, 'seventies': 6}
-model_path = "out/"
+model_path = "ultimate-german/"
 
 feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_path)#, cache_dir=model_args.cache_dir)
 
@@ -42,9 +42,8 @@ model = Wav2Vec2ForCTCnCLS.from_pretrained(
 )
 
 data_collator = DataCollatorCTCWithPadding(processor=processor, padding=True, audio_only=True)
-
-def genDataset():
-	yield {"file": "audio.wav"}
+	
+pred_data = {'file': ['audio2.wav']}
 
 target_sr = 16000
 
@@ -56,7 +55,7 @@ def prepare_dataset_step2(batch):
 	batch["input_values"] = processor(batch["speech"], sampling_rate=batch["sampling_rate"][0]).input_values
 	return batch
 	
-val_dataset = Dataset.from_generator(genDataset)
+val_dataset = Dataset.from_dict(pred_data)
 val_dataset = val_dataset.map(prepare_dataset_step1, load_from_cache_file=False)
 val_dataset = val_dataset.map(prepare_dataset_step2, batch_size=2, batched=True, num_proc=1, load_from_cache_file=False)
 
@@ -77,15 +76,16 @@ data_collator.audio_only=True
 predictions, labels, metrics = trainer.predict(val_dataset, metric_key_prefix="predict")
 print("predictions:", predictions, "labels:", labels, "metrics:", metrics)
 logits_ctc, logits_cls = predictions
-pred_ids = np.argmax(logits_cls, axis=-1)
-pred_probs = F.softmax(torch.from_numpy(logits_cls).float(), dim=-1)
-print(val_dataset)
-with open("prediction.txt", 'w') as f:
-	for i in range(len(pred_ids)):
-		f.write(val_dataset[i]['file'].split("/")[-1] + " " + str(len(val_dataset[i]['input_values'])/16000) + " ")
-		pred = pred_ids[i]
-		f.write(str(pred)+' ')
-		for j in range(4):
-			f.write(' ' + str(pred_probs[i][j].item()))
-		f.write('\n')
-f.close()
+print("logits ctc:", logits_ctc, "logits cls:", logits_cls)
+
+# process age classification
+pred_ids_cls = np.argmax(logits_cls, axis=-1)
+pred_probs_cls = F.softmax(torch.from_numpy(logits_cls).float(), dim=-1)
+pred_age = pred_ids_cls[0]
+age_class = [k for k, v in cls_age_label_map.items() if v == pred_age]
+print("Predicted age: ", age_class[0])
+
+# process token classification
+pred_ids_ctc = np.argmax(logits_ctc, axis=-1)
+pred_str = processor.batch_decode(pred_ids_ctc, output_word_offsets=True)
+print("pred text: ", pred_str)

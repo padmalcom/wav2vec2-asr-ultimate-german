@@ -16,6 +16,7 @@ import torch
 from ctctrainer import CTCTrainer
 from orthography import Orthography
 from datacollator import DataCollatorCTCWithPadding
+from tokenizer import build_tokenizer
 
 @dataclass
 class DataTrainingArguments:
@@ -34,7 +35,8 @@ class DataTrainingArguments:
 	
 @dataclass
 class ModelArguments:
-	model_name_or_path = "facebook/wav2vec2-base-960h"
+	#model_name_or_path = "facebook/wav2vec2-base-960h"
+	model_name_or_path = "facebook/wav2vec2-large"
 	cache_dir = "cache/"
 	freeze_feature_extractor = False
 	verbose_logging = False
@@ -53,6 +55,9 @@ class TrainingArgs:
 if __name__ == "__main__":
 	parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
 	model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+	
+	os.makedirs(training_args.output_dir, exist_ok=True)
+	
 	# TODO: Load checkpoint
 	
 	#base_path = os.path.join("E:", os.sep, "Datasets", "common-voice-12")
@@ -62,28 +67,33 @@ if __name__ == "__main__":
 	orthography.tokenizer = model_args.tokenizer
 	print("Ortho: ", orthography.tokenizer)
 	
-	# create processor
-	feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(
-		model_args.model_name_or_path, cache_dir=model_args.cache_dir
-	)
-	tokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
-		orthography.tokenizer,
-		cache_dir=model_args.cache_dir,
-		do_lower_case=orthography.do_lower_case,
-		word_delimiter_token=orthography.word_delimiter_token
-	)
-	processor = Wav2Vec2Processor(feature_extractor, tokenizer)
-	
 	# Load dataset
 	dataset = datasets.load_dataset('csv', data_files={'train': os.path.join(base_path, 'train.csv'), 'test': os.path.join(base_path, 'test.csv')})
 	print("Dataset:", dataset)
 	print("Test:", dataset['test'])
 	print("Test0:", dataset['test'][0])
 	
+	# create processor
+	feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(
+		model_args.model_name_or_path, cache_dir=model_args.cache_dir
+	)
+	#tokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
+	#	orthography.tokenizer,
+	#	cache_dir=model_args.cache_dir,
+	#	do_lower_case=orthography.do_lower_case,
+	#	word_delimiter_token=orthography.word_delimiter_token
+	#)
+	tokenizer = build_tokenizer(training_args.output_dir, dataset['train'], data_args.preprocessing_num_workers)
+	processor = Wav2Vec2Processor(feature_extractor, tokenizer)
+	
+
+	
 	# create label maps
 	cls_emotion_label_map = {'anger':0, 'boredom':1, 'disgust':2, 'fear':3, 'happiness':4, 'sadness':5, 'neutral':6}
 	cls_age_label_map = {'teens':0, 'twenties': 1, 'thirties': 2, 'fourties': 3, 'fifties': 4, 'sixties': 5, 'seventies': 6}
 	cls_gender_label_map = {'female': 0, 'male': 1}
+	
+	print("vocab size: ", len(processor.tokenizer))
 	
 	# Load model
 	model = Wav2Vec2ForCTCnCLS.from_pretrained(
@@ -109,7 +119,7 @@ if __name__ == "__main__":
 	def prepare_example(example, audio_only=False):
 		example["speech"], example["sampling_rate"] = librosa.load(os.path.join(base_path, "wavs", example[data_args.speech_file_column]), sr=target_sr)
 		if audio_only is False:
-			print("Example:", example[data_args.target_text_column])
+			#print("Example:", example[data_args.target_text_column])
 			updated_text = " ".join(example[data_args.target_text_column].split()) # remove whitespaces
 			updated_text = vocabulary_text_cleaner.sub("", updated_text)
 			if updated_text != example[data_args.target_text_column]:
@@ -166,9 +176,9 @@ if __name__ == "__main__":
 			for reference, predicted in zip(label_str, pred_str):
 				logger.debug(f'reference: "{reference}"')
 				logger.debug(f'predicted: "{predicted}"')
-				if orthography.untransliterator is not None:
-					logger.debug(f'reference (untransliterated): "{orthography.untransliterator(reference)}"')
-					logger.debug(f'predicted (untransliterated): "{orthography.untransliterator(predicted)}"')
+				#if orthography.untransliterator is not None:
+				#	logger.debug(f'reference (untransliterated): "{orthography.untransliterator(reference)}"')
+				#	logger.debug(f'predicted (untransliterated): "{orthography.untransliterator(predicted)}"')
 
 		wer = wer_metric.compute(predictions=ctc_pred_str, references=ctc_label_str)
 		return {"acc": correct/total, "wer": wer, "correct": correct, "total": total, "strlen": len(ctc_label_str)}
