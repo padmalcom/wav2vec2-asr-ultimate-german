@@ -119,7 +119,7 @@ if __name__ == "__main__":
 	def prepare_example(example, audio_only=False):
 		example["speech"], example["sampling_rate"] = librosa.load(os.path.join(base_path, "wavs", example[data_args.speech_file_column]), sr=target_sr)
 		if audio_only is False:
-			#print("Example:", example[data_args.target_text_column])
+			print("Example:", example)
 			updated_text = " ".join(example[data_args.target_text_column].split()) # remove whitespaces
 			updated_text = vocabulary_text_cleaner.sub("", updated_text)
 			if updated_text != example[data_args.target_text_column]:
