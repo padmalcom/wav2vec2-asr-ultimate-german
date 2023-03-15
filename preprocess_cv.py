@@ -111,6 +111,10 @@ def prepare_data():
 						# emotion classification
 						formatted_sample['emotion'] = emotion(wav_path)
 
+						if (formatted_sample['sentence'] == None):
+							print("THIS SHOULD NOT HAPPEN")
+							import sys
+							sys.exit()
 						data.append(formatted_sample)
 						i += 1
 		except KeyboardInterrupt:
