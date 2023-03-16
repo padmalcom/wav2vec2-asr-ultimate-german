@@ -14,7 +14,6 @@ import librosa
 import os
 import torch
 from ctctrainer import CTCTrainer
-from orthography import Orthography
 from datacollator import DataCollatorCTCWithPadding
 from tokenizer import build_tokenizer
 
@@ -28,7 +27,6 @@ class DataTrainingArguments:
 	age_column = "age"
 	target_feature_extractor_sampling_rate = False
 	max_duration_in_seconds = None
-	orthography = "librispeech"
 	overwrite_cache = False
 	preprocessing_num_workers = 1
 	output_dir = "output/tmp"
@@ -62,11 +60,7 @@ if __name__ == "__main__":
 	
 	#base_path = os.path.join("E:", os.sep, "Datasets", "common-voice-12")
 	base_path = os.path.join("common-voice-12")
-	
-	orthography = Orthography()
-	orthography.tokenizer = model_args.tokenizer
-	print("Ortho: ", orthography.tokenizer)
-	
+		
 	# Load dataset
 	dataset = datasets.load_dataset('csv', data_files={'train': os.path.join(base_path, 'train.csv'), 'test': os.path.join(base_path, 'test.csv')})
 	print("Dataset:", dataset)
@@ -77,17 +71,9 @@ if __name__ == "__main__":
 	feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(
 		model_args.model_name_or_path, cache_dir=model_args.cache_dir
 	)
-	#tokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
-	#	orthography.tokenizer,
-	#	cache_dir=model_args.cache_dir,
-	#	do_lower_case=orthography.do_lower_case,
-	#	word_delimiter_token=orthography.word_delimiter_token
-	#)
 	tokenizer = build_tokenizer(training_args.output_dir, dataset['train'], data_args.preprocessing_num_workers)
 	processor = Wav2Vec2Processor(feature_extractor, tokenizer)
-	
-
-	
+		
 	# create label maps
 	cls_emotion_label_map = {'anger':0, 'boredom':1, 'disgust':2, 'fear':3, 'happiness':4, 'sadness':5, 'neutral':6}
 	cls_age_label_map = {'teens':0, 'twenties': 1, 'thirties': 2, 'fourties': 3, 'fifties': 4, 'sixties': 5, 'seventies': 6, 'eighties': 7}
@@ -176,9 +162,6 @@ if __name__ == "__main__":
 			for reference, predicted in zip(label_str, pred_str):
 				logger.debug(f'reference: "{reference}"')
 				logger.debug(f'predicted: "{predicted}"')
-				#if orthography.untransliterator is not None:
-				#	logger.debug(f'reference (untransliterated): "{orthography.untransliterator(reference)}"')
-				#	logger.debug(f'predicted (untransliterated): "{orthography.untransliterator(predicted)}"')
 
 		wer = wer_metric.compute(predictions=ctc_pred_str, references=ctc_label_str)
 		return {"acc": correct/total, "wer": wer, "correct": correct, "total": total, "strlen": len(ctc_label_str)}
