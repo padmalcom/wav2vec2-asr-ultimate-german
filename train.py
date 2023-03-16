@@ -90,7 +90,7 @@ if __name__ == "__main__":
 	
 	# create label maps
 	cls_emotion_label_map = {'anger':0, 'boredom':1, 'disgust':2, 'fear':3, 'happiness':4, 'sadness':5, 'neutral':6}
-	cls_age_label_map = {'teens':0, 'twenties': 1, 'thirties': 2, 'fourties': 3, 'fifties': 4, 'sixties': 5, 'seventies': 6}
+	cls_age_label_map = {'teens':0, 'twenties': 1, 'thirties': 2, 'fourties': 3, 'fifties': 4, 'sixties': 5, 'seventies': 6, 'eighties': 7}
 	cls_gender_label_map = {'female': 0, 'male': 1}
 	
 	print("vocab size: ", len(processor.tokenizer))
