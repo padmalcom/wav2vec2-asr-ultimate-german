@@ -99,7 +99,7 @@ if __name__ == "__main__":
 	model = Wav2Vec2ForCTCnCLS.from_pretrained(
 		model_args.model_name_or_path,
 		cache_dir=model_args.cache_dir,
-		gradient_checkpointing=False,
+		gradient_checkpointing=True,
 		vocab_size=len(processor.tokenizer),
 		cls_len=len(cls_age_label_map),
 		alpha=model_args.alpha,
