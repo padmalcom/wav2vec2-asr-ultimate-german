@@ -1,7 +1,5 @@
 import os
-import json
 import csv
-import random
 import string
 from tqdm import tqdm
 from pydub import AudioSegment
@@ -11,8 +9,9 @@ from scipy.special import softmax
 import urllib.request
 
 RAW_DATA_FILE = os.path.join('common-voice-12','validated.tsv')
-TRAIN_FILE = "train.csv"
-TEST_FILE = "test.csv"
+TRAIN_FILE = os.path.join("common-voice-12", "train.csv")
+TEST_FILE = os.path.join("common-voice-12", "test.csv")
+TEST_TRAIN_RATIO = 8 # every 8th sample goes into test
 
 ### irony
 IRONY_MODEL_NAME = f"cardiffnlp/twitter-roberta-base-irony"
@@ -67,7 +66,6 @@ def translate(text):
 
 ### preparation
 def prepare_data():
-	data = []
 	labels = {}
 	with open(RAW_DATA_FILE) as f:
 		row_count = sum(1 for line in f)
@@ -75,75 +73,69 @@ def prepare_data():
 	
 	with open(RAW_DATA_FILE, 'r', encoding="utf8") as f:
 		tsv = csv.DictReader(f, delimiter="\t")
-		data = []
 		
 		if not os.path.exists(os.path.join('common-voice-12', "wavs")):
 			os.mkdir(os.path.join('common-voice-12', "wavs"))
 			
 		i = 0
-		try:
-			for line in tqdm(tsv, total=row_count):
-				formatted_sample = {}
-				formatted_sample['speaker'] = line['client_id']
-				formatted_sample['file'] = line['path']
-				formatted_sample['sentence'] = line['sentence'].translate(str.maketrans('', '', string.punctuation))
-				formatted_sample['age'] = line['age']
-				formatted_sample['gender'] = line['gender']
-				formatted_sample['language'] = line['locale']
-				
-				if (formatted_sample['sentence'] == None or line['client_id'] == None or line['path'] == None or line['sentence'] == None or line['age'] == None or line['gender'] == None or line['locale'] == None or line['client_id'].strip() == '' or line['path'].strip() == '' or line['sentence'].strip() == '' or line['age'].strip() == '' or line['gender'].strip() == '' or line['locale'].strip() == '' or formatted_sample['sentence'].strip() == ''):
-					print("Faulty line: ", line)
-					continue
-					
-				if formatted_sample['sentence'] == 'nan':
-					print("NaN value", line)
-					continue
-				
-				# '0' non irony, '1' irony
-				formatted_sample['irony'] = irony(translate(formatted_sample['sentence']))
-				
-				mp3FullPath = os.path.join('common-voice-12', "clips", line['path'])
-				filename, _ = os.path.splitext(os.path.basename(mp3FullPath))
-				sound = AudioSegment.from_mp3(mp3FullPath)
-				if sound.duration_seconds > 0:
-						sound = sound.set_frame_rate(16000)
-						sound = sound.set_channels(1)
-						wav_path = os.path.join('common-voice-12', "wavs", filename + ".wav")
-						sound.export(wav_path, format="wav")
-						formatted_sample['file'] = filename + ".wav"
+		faulty_lines = 0
+		train_file_header_written = False
+		test_file_header_written = False
+		test_count = 0
+		train_count = 0
+		with open(TRAIN_FILE, 'w', newline='', encoding="utf8") as train_f:
+			with open(TEST_FILE, 'w', newline='', encoding="utf8") as test_f:
+				try:
+					for line in tqdm(tsv, total=row_count):
+						formatted_sample = {}
+						formatted_sample['speaker'] = line['client_id']
+						formatted_sample['file'] = line['path']
+						formatted_sample['sentence'] = line['sentence'].translate(str.maketrans('', '', string.punctuation))
+						formatted_sample['age'] = line['age']
+						formatted_sample['gender'] = line['gender']
+						formatted_sample['language'] = line['locale']
 						
-						# emotion classification
-						formatted_sample['emotion'] = emotion(wav_path)
+						if (formatted_sample['sentence'] == None or formatted_sample['sentence'] == 'nan' or line['client_id'] == None or line['path'] == None or line['sentence'] == None or line['age'] == None or line['gender'] == None or line['locale'] == None or line['client_id'].strip() == '' or line['path'].strip() == '' or line['sentence'].strip() == '' or line['age'].strip() == '' or line['gender'].strip() == '' or line['locale'].strip() == '' or formatted_sample['sentence'].strip() == ''):
+							#print("Faulty line: ", line)
+							faulty_lines += 1
+							continue
+						
+						# '0' non irony, '1' irony
+						formatted_sample['irony'] = irony(translate(formatted_sample['sentence']))
+						
+						mp3FullPath = os.path.join('common-voice-12', "clips", line['path'])
+						filename, _ = os.path.splitext(os.path.basename(mp3FullPath))
+						sound = AudioSegment.from_mp3(mp3FullPath)
+						if sound.duration_seconds > 0:
+								sound = sound.set_frame_rate(16000)
+								sound = sound.set_channels(1)
+								wav_path = os.path.join('common-voice-12', "wavs", filename + ".wav")
+								sound.export(wav_path, format="wav")
+								formatted_sample['file'] = filename + ".wav"
+								
+								# emotion classification
+								formatted_sample['emotion'] = emotion(wav_path)
 
-						if (formatted_sample['sentence'] == None):
-							print("THIS SHOULD NOT HAPPEN")
-							import sys
-							sys.exit()
-						data.append(formatted_sample)
-						i += 1
-		except KeyboardInterrupt:
-			print("Keyboard interrupt called. Writing files and exiting")
-		
-		random.shuffle(data)
-		print("Found", len(data), "samples. Example: ", data[:1])
-		
-		train = data[:int(len(data)*0.8)]
-		test = data[len(train):]
-		
-		print("Length train:", len(train), "length test:", len(test))
-		
-		with open(TRAIN_FILE, 'w', newline='', encoding="utf8") as f: 
-			w = csv.DictWriter(f, train[0].keys())
-			w.writeheader()
-			for t in train:
-				w.writerow(t)
+								if i % TEST_TRAIN_RATIO == 0:
+									if not test_file_header_written:
+										test_w = csv.DictWriter(test_f, formatted_sample.keys())
+										test_w.writeheader()
+										test_file_header_written = True
+									test_w.writerow(formatted_sample)
+									test_count += 1
+								else:
+									if not train_file_header_written:
+										train_w = csv.DictWriter(train_f, formatted_sample.keys())
+										train_w.writeheader()
+										train_file_header_written = True
+									train_w.writerow(formatted_sample)
+									train_count += 1
+								i += 1
+				except KeyboardInterrupt:
+					print("Keyboard interrupt called. Exiting...")
 				
-		with open(TEST_FILE, 'w', newline='', encoding="utf8") as f: 
-			w = csv.DictWriter(f, test[0].keys())
-			w.writeheader()
-			for t in test:
-				w.writerow(t)	
-	
+				#random.shuffle(data)
+				print("Found", i, "samples.", train_count, "in train and", test_count, "in test.", faulty_lines, "lines were faulty.")
 		
 if __name__ == '__main__':
 	prepare_data()
