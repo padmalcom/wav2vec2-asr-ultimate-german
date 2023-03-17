@@ -92,6 +92,8 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 				loss_ctc = self._ctc_loss(logits_ctc, labels[0], input_values, attention_mask)
 			if if_cls:
 				loss_cls = self._cls_loss(logits_cls, labels[1])
+				
+			print("Loss cls: ", loss_cls, "loss_ctc: ", loss_ctc)
 
 			loss = loss_cls + self.alpha * loss_ctc
 
