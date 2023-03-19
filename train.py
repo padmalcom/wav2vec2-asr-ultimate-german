@@ -19,15 +19,15 @@ from tokenizer import build_tokenizer
 
 @dataclass
 class DataTrainingArguments:
-	dataset_config_name = None
-	train_split_name = "train"
-	validation_split_name = "validation"
+	#dataset_config_name = None
+	#train_split_name = "train"
+	#validation_split_name = "validation"
 	target_text_column = "sentence"
 	speech_file_column = "file"
 	age_column = "age"
-	target_feature_extractor_sampling_rate = False
-	max_duration_in_seconds = None
-	overwrite_cache = False
+	#target_feature_extractor_sampling_rate = False
+	#max_duration_in_seconds = None
+	#overwrite_cache = False
 	preprocessing_num_workers = 1
 	output_dir = "output/tmp"
 	
@@ -37,9 +37,9 @@ class ModelArguments:
 	model_name_or_path = "facebook/wav2vec2-large"
 	cache_dir = "cache/"
 	freeze_feature_extractor = False
-	verbose_logging = False
+	#verbose_logging = False
 	alpha = 0.1
-	tokenizer = "facebook/wav2vec2-base-960h"
+	#tokenizer = "facebook/wav2vec2-base-960h"
 	
 @dataclass
 class TrainingArgs:
@@ -122,8 +122,8 @@ if __name__ == "__main__":
 		batch["input_values"] = processor(batch["speech"], sampling_rate=batch["sampling_rate"][0]).input_values
 		if audio_only is False:
 			print("Batch age:", batch[data_args.age_column])
-			#cls_labels = list(map(lambda e: cls_label_map[e], batch["emotion"]))
-			cls_labels = list(map(lambda e: cls_age_label_map[e], batch[data_args.age_column]))# batch[data_args.age_column]
+			cls_labels = list(map(lambda e: cls_age_label_map[e], batch[data_args.age_column]))
+			print("CLS Labels:", cls_labels)
 			with processor.as_target_processor():
 				batch["labels"] = processor(batch[data_args.target_text_column]).input_ids
 			for i in range(len(cls_labels)):
@@ -147,9 +147,11 @@ if __name__ == "__main__":
 	data_collator = DataCollatorCTCWithPadding(processor=processor, padding=True)
 	
 	def compute_metrics(pred):
+		print("Metrics pred: ", pred)
 		cls_pred_logits = pred.predictions[1]
 		cls_pred_ids = np.argmax(cls_pred_logits, axis=-1)
 		total = len(pred.label_ids[1])
+		print("cls pred ids:", cls_pred_ids, "pred labels:", pred.label_ids[1])
 		correct = (cls_pred_ids == pred.label_ids[1]).sum().item() # label = (ctc_label, cls_label)
 
 		ctc_pred_logits = pred.predictions[0]
@@ -157,19 +159,22 @@ if __name__ == "__main__":
 		pred.label_ids[0][pred.label_ids[0] == -100] = processor.tokenizer.pad_token_id
 		ctc_pred_str = processor.batch_decode(ctc_pred_ids)
 		# we do not want to group tokens when computing the metrics
+		print("ctc label:", label_str, "ctc prediction:", pred_str)
 		ctc_label_str = processor.batch_decode(pred.label_ids[0], group_tokens=False)
-		if logger.isEnabledFor(logging.DEBUG):
-			for reference, predicted in zip(label_str, pred_str):
-				logger.debug(f'reference: "{reference}"')
-				logger.debug(f'predicted: "{predicted}"')
+		for reference, predicted in zip(label_str, pred_str):
+			logger.debug(f'reference: "{reference}"')
+			logger.debug(f'predicted: "{predicted}"')
 
 		wer = wer_metric.compute(predictions=ctc_pred_str, references=ctc_label_str)
-		return {"acc": correct/total, "wer": wer, "correct": correct, "total": total, "strlen": len(ctc_label_str)}
+		metric_res = {"acc": correct/total, "wer": wer, "correct": correct, "total": total, "strlen": len(ctc_label_str)}
+		print("metric res:", metric_res)
+		return metric_res
 		
 	if model_args.freeze_feature_extractor:
 		model.freeze_feature_extractor()
 		
 	print("Val dataset:", val_dataset)
+	print("Train dataset:", train_dataset)
 	trainer = CTCTrainer(
 		model=model,
 		data_collator=data_collator,
