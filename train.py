@@ -160,11 +160,9 @@ if __name__ == "__main__":
 		pred.label_ids[0][pred.label_ids[0] == -100] = processor.tokenizer.pad_token_id
 		ctc_pred_str = processor.batch_decode(ctc_pred_ids)
 		# we do not want to group tokens when computing the metrics
-		print("ctc label:", label_str, "ctc prediction:", pred_str)
 		ctc_label_str = processor.batch_decode(pred.label_ids[0], group_tokens=False)
-		for reference, predicted in zip(label_str, pred_str):
-			logger.debug(f'reference: "{reference}"')
-			logger.debug(f'predicted: "{predicted}"')
+		print("ctc label:", ctc_label_str, "ctc prediction:", ctc_pred_str)
+
 
 		wer = wer_metric.compute(predictions=ctc_pred_str, references=ctc_label_str)
 		metric_res = {"acc": correct/total, "wer": wer, "correct": correct, "total": total, "strlen": len(ctc_label_str)}
