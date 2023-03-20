@@ -106,7 +106,6 @@ if __name__ == "__main__":
 	def prepare_example(example, audio_only=False):
 		example["speech"], example["sampling_rate"] = librosa.load(os.path.join(base_path, "wavs", example[data_args.speech_file_column]), sr=target_sr)
 		if audio_only is False:
-			print("Example:", example)
 			updated_text = " ".join(example[data_args.target_text_column].split()) # remove whitespaces
 			updated_text = vocabulary_text_cleaner.sub("", updated_text)
 			if updated_text != example[data_args.target_text_column]:
@@ -122,9 +121,7 @@ if __name__ == "__main__":
 	def prepare_dataset(batch, audio_only=False):
 		batch["input_values"] = processor(batch["speech"], sampling_rate=batch["sampling_rate"][0]).input_values
 		if audio_only is False:
-			print("Batch age:", batch[data_args.age_column])
 			cls_labels = list(map(lambda e: cls_age_label_map[e], batch[data_args.age_column]))
-			print("CLS Labels:", cls_labels)
 			with processor.as_target_processor():
 				batch["labels"] = processor(batch[data_args.target_text_column]).input_ids
 			for i in range(len(cls_labels)):
