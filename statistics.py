@@ -1,5 +1,6 @@
 import pandas as pd
-df = pd.read_csv('train.csv')
+import os
+df = pd.read_csv(os.path.join('common-voice-12', 'train.csv'))
 
 df_emotion_count = df.groupby(['emotion']).count()
 print(df_emotion_count)
