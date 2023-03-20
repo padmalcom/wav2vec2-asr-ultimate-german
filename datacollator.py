@@ -14,13 +14,10 @@ class DataCollatorCTCWithPadding:
 		# split inputs and labels since they have to be of different lenghts and need
 		# different padding methods
 		input_features = [{"input_values": feature["input_values"]} for feature in features]
-		print("Collator input features:", input_features)
 		if self.audio_only is False:
 			label_features = [{"input_ids": feature["labels"][:-1]} for feature in features]
 			cls_labels = [feature["labels"][-1] for feature in features]
 			
-			print("Collator cls_labels: ", cls_labels, "label features: ", label_features)
-
 		batch = self.processor.pad(
 			input_features,
 			padding=self.padding,
@@ -42,4 +39,5 @@ class DataCollatorCTCWithPadding:
 			ctc_labels = labels_batch["input_ids"].masked_fill(labels_batch.attention_mask.ne(1), -100)
 			batch["labels"] = (ctc_labels, torch.tensor(cls_labels)) # labels = (ctc_labels, cls_labels)
 
+		print("collator batch:", batch)
 		return batch

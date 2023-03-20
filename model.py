@@ -88,9 +88,11 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 
 		loss = None
 		if labels is not None:
+			print("All labels in forward: ", labels)
 			if if_ctc:
 				loss_ctc = self._ctc_loss(logits_ctc, labels[0], input_values, attention_mask)
 			if if_cls:
+				print("CLS loss logits:", logits_cls, "labels:", labels[1])
 				loss_cls = self._cls_loss(logits_cls, labels[1])
 				
 			print("Loss cls: ", loss_cls, "loss_ctc: ", loss_ctc)
