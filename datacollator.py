@@ -39,5 +39,4 @@ class DataCollatorCTCWithPadding:
 			ctc_labels = labels_batch["input_ids"].masked_fill(labels_batch.attention_mask.ne(1), -100)
 			batch["labels"] = (ctc_labels, torch.tensor(cls_labels)) # labels = (ctc_labels, cls_labels)
 
-		print("collator batch:", batch)
 		return batch
