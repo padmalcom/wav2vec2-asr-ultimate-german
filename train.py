@@ -148,9 +148,10 @@ if __name__ == "__main__":
 	data_collator = DataCollatorCTCWithPadding(processor=processor, padding=True)
 	
 	def compute_metrics(pred):
-		print("Metrics pred: ", pred)
+		print("Metrics predictions: ", pred.predictions)
 		cls_pred_logits = pred.predictions[1]
 		cls_pred_ids = np.argmax(cls_pred_logits, axis=-1)
+		print("cls pred ids:", cls_pred_ids)
 		total = len(pred.label_ids[1])
 		print("cls pred ids:", cls_pred_ids, "pred labels:", pred.label_ids[1])
 		correct = (cls_pred_ids == pred.label_ids[1]).sum().item() # label = (ctc_label, cls_label)

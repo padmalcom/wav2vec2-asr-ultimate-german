@@ -80,7 +80,7 @@ print("logits ctc:", logits_ctc, "logits cls:", logits_cls)
 
 # process age classification
 pred_ids_cls = np.argmax(logits_cls, axis=-1)
-pred_probs_cls = F.softmax(torch.from_numpy(logits_cls).float(), dim=-1)
+#pred_probs_cls = F.softmax(torch.from_numpy(logits_cls).float(), dim=-1)
 pred_age = pred_ids_cls[0]
 age_class = [k for k, v in cls_age_label_map.items() if v == pred_age]
 print("Predicted age: ", age_class[0])
