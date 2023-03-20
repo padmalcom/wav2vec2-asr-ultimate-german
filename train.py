@@ -13,6 +13,7 @@ import re
 import librosa
 import os
 import torch
+import numpy as np
 from ctctrainer import CTCTrainer
 from datacollator import DataCollatorCTCWithPadding
 from tokenizer import build_tokenizer
