@@ -182,7 +182,7 @@ if __name__ == "__main__":
 		compute_metrics=compute_metrics,
 		train_dataset=train_dataset,
 		eval_dataset=val_dataset,
-		tokenizer=processor.feature_extractor,
+		tokenizer=processor.feature_extractor
 	)
 	
 	trainer.train()
