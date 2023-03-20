@@ -31,7 +31,9 @@ class CTCTrainer(Trainer):
 
 	def training_step(self, model, inputs):
 		model.train()
+		print("Inputs before preparation:", inputs)
 		inputs = self._prepare_inputs(inputs)
+		print("Inputs after preparation:", inputs)
 
 		loss = self.compute_loss(model, inputs)
 
