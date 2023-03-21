@@ -3,6 +3,7 @@ from transformers import (
 	Wav2Vec2CTCTokenizer,
 	Wav2Vec2Processor
 )
+import os
 import librosa
 from datasets import Dataset
 from datasets import disable_caching
@@ -11,7 +12,6 @@ import torch.nn.functional as F
 import torch
 from model import Wav2Vec2ForCTCnCLS
 from ctctrainer import CTCTrainer
-from orthography import Orthography
 from datacollator import DataCollatorCTCWithPadding
 
 disable_caching()
@@ -19,17 +19,11 @@ disable_caching()
 cls_age_label_map = {'teens':0, 'twenties': 1, 'thirties': 2, 'fourties': 3, 'fifties': 4, 'sixties': 5, 'seventies': 6}
 model_path = "ultimate-german/"
 
+vocab_path = os.path.join(model_path, "vocab.json")
+tokenizer = Wav2Vec2CTCTokenizer(vocab_path, unk_token="<unk>", pad_token="<pad>", word_delimiter_token="|")
+
 feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_path)#, cache_dir=model_args.cache_dir)
 
-orthography = Orthography()
-orthography.tokenizer = "facebook/wav2vec2-base-960h"
-	
-tokenizer = Wav2Vec2CTCTokenizer.from_pretrained(
-	orthography.tokenizer,
-	#cache_dir=model_args.cache_dir,
-	do_lower_case=orthography.do_lower_case,
-	word_delimiter_token=orthography.word_delimiter_token
-)
 processor = Wav2Vec2Processor(feature_extractor, tokenizer)
 
 model = Wav2Vec2ForCTCnCLS.from_pretrained(
