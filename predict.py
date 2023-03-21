@@ -16,7 +16,7 @@ from datacollator import DataCollatorCTCWithPadding
 
 disable_caching()
 
-cls_age_label_map = {'teens':0, 'twenties': 1, 'thirties': 2, 'fourties': 3, 'fifties': 4, 'sixties': 5, 'seventies': 6}
+cls_age_label_map = {'teens':0, 'twenties': 1, 'thirties': 2, 'fourties': 3, 'fifties': 4, 'sixties': 5, 'seventies': 6, 'eighties': 7}
 model_path = "ultimate-german/"
 
 vocab_path = os.path.join(model_path, "vocab.json")
