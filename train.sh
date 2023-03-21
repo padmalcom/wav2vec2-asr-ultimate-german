@@ -3,7 +3,7 @@ export LR=5e-5
 export ACC=4 # batch size * acc = 8
 export WORKER_NUM=1
 
-bitfusion run -n 1 "python run_emotion.py \
+bitfusion run -n 1 "python train.py \
 --output_dir=out5/ \
 --cache_dir=cache/ \
 --num_train_epochs=200 \
