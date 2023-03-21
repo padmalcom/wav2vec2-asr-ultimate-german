@@ -29,7 +29,7 @@ processor = Wav2Vec2Processor(feature_extractor, tokenizer)
 model = Wav2Vec2ForCTCnCLS.from_pretrained(
 	model_path,
 	#cache_dir=model_args.cache_dir,
-	gradient_checkpointing=False,
+	#gradient_checkpointing=False,
 	vocab_size=len(processor.tokenizer),
 	cls_len=len(cls_age_label_map),
 	alpha=0.1,

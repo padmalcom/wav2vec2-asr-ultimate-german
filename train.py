@@ -181,6 +181,5 @@ if __name__ == "__main__":
 		eval_dataset=val_dataset,
 		tokenizer=processor.feature_extractor
 	)
-	
 	trainer.train()
 	trainer.save_model() 
