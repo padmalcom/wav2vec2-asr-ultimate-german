@@ -39,19 +39,8 @@ class DataTrainingArguments:
 @dataclass
 class ModelArguments:
 	model_name_or_path = "facebook/wav2vec2-large"
-	cache_dir = "cache/"
 	freeze_feature_extractor = False
-	alpha = 0.1
-	#tokenizer = "facebook/wav2vec2-base-960h"
-	
-@dataclass
-class TrainingArgs:
-	output_dir = "output/tmp"
-	per_device_train_batch_size = 2
-	full_determinism = False
-	seed = 42
-	skip_memory_metrics = True
-	# TODO: Add other arguments
+
 				
 if __name__ == "__main__":
 	parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
