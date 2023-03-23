@@ -39,8 +39,9 @@ class DataTrainingArguments:
 @dataclass
 class ModelArguments:
 	model_name_or_path = "facebook/wav2vec2-large"
+	cache_dir = "cache/"
 	freeze_feature_extractor = False
-
+	alpha = 0.1
 				
 if __name__ == "__main__":
 	parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
