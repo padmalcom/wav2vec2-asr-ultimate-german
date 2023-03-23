@@ -1,5 +1,6 @@
 from transformers import Trainer
 import torch
+from packaging import version
 
 if version.parse(torch.__version__) >= version.parse("1.6"):
 	_is_native_amp_available = True
