@@ -4,7 +4,8 @@ from transformers import (
 	HfArgumentParser,
 	Wav2Vec2FeatureExtractor,
 	Wav2Vec2CTCTokenizer,
-	Wav2Vec2Processor
+	Wav2Vec2Processor,
+	is_apex_available
 )
 import datasets
 import evaluate
@@ -19,27 +20,26 @@ from ctctrainer import CTCTrainer
 from datacollator import DataCollatorCTCWithPadding
 from tokenizer import build_tokenizer
 
+if is_apex_available():
+	from apex import amp
+	
+if version.parse(torch.__version__) >= version.parse("1.6"):
+	_is_native_amp_available = True
+	from torch.cuda.amp import autocast	
+
 @dataclass
 class DataTrainingArguments:
-	#dataset_config_name = None
-	#train_split_name = "train"
-	#validation_split_name = "validation"
 	target_text_column = "sentence"
 	speech_file_column = "file"
 	age_column = "age"
-	#target_feature_extractor_sampling_rate = False
-	#max_duration_in_seconds = None
-	#overwrite_cache = False
 	preprocessing_num_workers = 1
 	output_dir = "output/tmp"
 	
 @dataclass
 class ModelArguments:
-	#model_name_or_path = "facebook/wav2vec2-base-960h"
 	model_name_or_path = "facebook/wav2vec2-large"
 	cache_dir = "cache/"
 	freeze_feature_extractor = False
-	#verbose_logging = False
 	alpha = 0.1
 	#tokenizer = "facebook/wav2vec2-base-960h"
 	

@@ -55,7 +55,7 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 	def _cls_loss(self, logits, cls_labels): # sum hidden_states over dim 1 (the sequence length), then feed into self.cls
 		loss = None
 		if cls_labels is not None:
-			loss = F.cross_entropy(logits, cls_labels.to(logits.device), weight=cls_weights)
+			loss = F.cross_entropy(logits, cls_labels.to(logits.device), weight=torch.tensor(cls_weights, device=logits.device, dtype=torch.float))
 		return loss
 
 
