@@ -6,13 +6,14 @@ from torch import nn
 
 class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 
-	def __init__(self, config, cls_len=4, alpha=0.01):
+	def __init__(self, config, cls_len, cls_weights, alpha=0.01):
 		super().__init__(config)
 		self.wav2vec2 = Wav2Vec2Model(config)
 		self.dropout = nn.Dropout(config.final_dropout)
 		self.lm_head = nn.Linear(config.hidden_size, config.vocab_size)
 		self.cls_head = nn.Linear(config.hidden_size, cls_len)
 		self.init_weights()
+		self.cls_weights = cls_weights
 		self.alpha = alpha
 
 	def freeze_feature_extractor(self):
@@ -54,7 +55,7 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 	def _cls_loss(self, logits, cls_labels): # sum hidden_states over dim 1 (the sequence length), then feed into self.cls
 		loss = None
 		if cls_labels is not None:
-			loss = F.cross_entropy(logits, cls_labels.to(logits.device))
+			loss = F.cross_entropy(logits, cls_labels.to(logits.device), weight=cls_weights)
 		return loss
 
 

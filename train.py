@@ -8,12 +8,13 @@ from transformers import (
 )
 import datasets
 import evaluate
-from model import Wav2Vec2ForCTCnCLS
+import pandas as pd
 import re
 import librosa
 import os
 import torch
 import numpy as np
+from model import Wav2Vec2ForCTCnCLS
 from ctctrainer import CTCTrainer
 from datacollator import DataCollatorCTCWithPadding
 from tokenizer import build_tokenizer
@@ -75,10 +76,36 @@ if __name__ == "__main__":
 	tokenizer = build_tokenizer(training_args.output_dir, dataset['train'], data_args.preprocessing_num_workers)
 	processor = Wav2Vec2Processor(feature_extractor, tokenizer)
 		
-	# create label maps
-	#cls_emotion_label_map = {'anger':0, 'boredom':1, 'disgust':2, 'fear':3, 'happiness':4, 'sadness':5, 'neutral':6}
+	# create label maps and count of each label class
+	cls_emotion_label_map = {'anger':0, 'boredom':1, 'disgust':2, 'fear':3, 'happiness':4, 'sadness':5, 'neutral':6}
+	cls_emotion_class_weights = [0] * len(cls_emotion_label_map)
+	
 	cls_age_label_map = {'teens':0, 'twenties': 1, 'thirties': 2, 'fourties': 3, 'fifties': 4, 'sixties': 5, 'seventies': 6, 'eighties': 7}
-	#cls_gender_label_map = {'female': 0, 'male': 1}
+	cls_age_label_class_weights = [0] * len(cls_age_label_map)
+	
+	cls_gender_label_map = {'female': 0, 'male': 1}
+	cls_gender_class_weights = [0] * len(cls_gender_label_map)
+	
+	# count label sizes in train to balance classes
+	df = pd.read_csv(os.path.join(base_path, 'train.csv'))
+	
+	df_age_count = df.groupby(['age']).count()
+	for index, k in enumerate(cls_age_label_map):
+		if k in df_age_count.index:
+			cls_age_label_class_weights[index] = 1 - (df_age_count.loc[k]['file'] / df.size)
+	print("Age label weights:", cls_age_label_class_weights)
+	
+	df_emotion_count = df.groupby(['emotion']).count()
+	for index, k in enumerate(cls_emotion_label_map):
+		if k in df_emotion_count.index:
+			cls_emotion_class_weights[index] = 1 - (df_emotion_count.loc[k]['file'] / df.size)
+	print("Emotion label weights:", cls_emotion_class_weights)
+
+	df_gender_count = df.groupby(['gender']).count()
+	for index, k in enumerate(cls_gender_label_map):
+		if k in df_gender_count.index:
+			cls_gender_class_weights[index] = 1 - (df_gender_count.loc[k]['file'] / df.size)
+	print("Gender label weights:", cls_gender_class_weights)	
 	
 	print("vocab size: ", len(processor.tokenizer))
 	
@@ -89,6 +116,7 @@ if __name__ == "__main__":
 		gradient_checkpointing=True,
 		vocab_size=len(processor.tokenizer),
 		cls_len=len(cls_age_label_map),
+		cls_weights=cls_age_label_class_weights,
 		alpha=model_args.alpha,
 	)
 	
