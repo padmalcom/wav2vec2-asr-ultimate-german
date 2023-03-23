@@ -4,8 +4,7 @@ from transformers import (
 	HfArgumentParser,
 	Wav2Vec2FeatureExtractor,
 	Wav2Vec2CTCTokenizer,
-	Wav2Vec2Processor,
-	is_apex_available
+	Wav2Vec2Processor
 )
 import datasets
 import evaluate
@@ -19,9 +18,6 @@ from model import Wav2Vec2ForCTCnCLS
 from ctctrainer import CTCTrainer
 from datacollator import DataCollatorCTCWithPadding
 from tokenizer import build_tokenizer
-
-if is_apex_available():
-	from apex import amp
 
 @dataclass
 class DataTrainingArguments:
