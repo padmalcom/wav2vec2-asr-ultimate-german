@@ -2,6 +2,11 @@ from transformers import Trainer
 import torch
 
 class CTCTrainer(Trainer):
+
+	def __init__(self):
+		super().__init__()
+		self.use_amp = True
+
 	def _prepare_inputs(self, inputs):
 		for k, v in inputs.items():
 			#print("Key:", k, "value:", v)
