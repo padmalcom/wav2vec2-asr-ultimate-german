@@ -15,6 +15,7 @@ import librosa
 import os
 import torch
 import numpy as np
+from packaging import version
 from model import Wav2Vec2ForCTCnCLS
 from ctctrainer import CTCTrainer
 from datacollator import DataCollatorCTCWithPadding
