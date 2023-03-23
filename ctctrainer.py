@@ -3,10 +3,6 @@ import torch
 
 class CTCTrainer(Trainer):
 
-	def __init__(self):
-		super().__init__()
-		self.use_amp = True
-
 	def _prepare_inputs(self, inputs):
 		for k, v in inputs.items():
 			#print("Key:", k, "value:", v)
@@ -36,6 +32,7 @@ class CTCTrainer(Trainer):
 
 	def training_step(self, model, inputs):
 		model.train()
+		self.use_amp = True
 		inputs = self._prepare_inputs(inputs)
 
 		#loss = self.compute_loss(model, inputs)
