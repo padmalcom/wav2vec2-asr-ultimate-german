@@ -17,12 +17,14 @@ from datacollator import DataCollatorCTCWithPadding
 disable_caching()
 
 cls_age_label_map = {'teens':0, 'twenties': 1, 'thirties': 2, 'fourties': 3, 'fifties': 4, 'sixties': 5, 'seventies': 6, 'eighties': 7}
+cls_age_label_class_weights = [0] * len(cls_age_label_map)
 model_path = "ultimate-german/"
 
 vocab_path = os.path.join(model_path, "vocab.json")
 tokenizer = Wav2Vec2CTCTokenizer(vocab_path, unk_token="<unk>", pad_token="<pad>", word_delimiter_token="|")
 
-feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_path)#, cache_dir=model_args.cache_dir)
+#feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_path)#, cache_dir=model_args.cache_dir)
+feature_extractor = Wav2Vec2FeatureExtractor(feature_size=1, sampling_rate=16000, padding_value=0.0, do_normalize=True, return_attention_mask=False)
 
 processor = Wav2Vec2Processor(feature_extractor, tokenizer)
 
@@ -32,6 +34,7 @@ model = Wav2Vec2ForCTCnCLS.from_pretrained(
 	#gradient_checkpointing=False,
 	vocab_size=len(processor.tokenizer),
 	cls_len=len(cls_age_label_map),
+	cls_weights=cls_age_label_class_weights,
 	alpha=0.1,
 )
 
