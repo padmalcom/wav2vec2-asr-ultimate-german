@@ -78,14 +78,13 @@ if __name__ == "__main__":
 	del vocab_dict[" "]
 	vocab_dict["[UNK]"] = len(vocab_dict)
 	vocab_dict["[PAD]"] = len(vocab_dict)
-	print(len(vocab_dict))
+	print("vocal length:", len(vocab_dict))
 	with open('vocab.json', 'w') as vocab_file:
 		json.dump(vocab_dict, vocab_file)
 	tokenizer = Wav2Vec2CTCTokenizer("./vocab.json", unk_token="[UNK]", pad_token="[PAD]", word_delimiter_token="|")		
 	tokenizer..save_pretrained(training_args.output_dir) 
 	
 	processor = Wav2Vec2Processor(feature_extractor, tokenizer)
-	print("Processor: ", processor)
 		
 	# create label maps and count of each label class
 	cls_emotion_label_map = {'anger':0, 'boredom':1, 'disgust':2, 'fear':3, 'happiness':4, 'sadness':5, 'neutral':6}
@@ -161,7 +160,6 @@ if __name__ == "__main__":
 		batch["input_values"] = processor(batch["speech"], sampling_rate=batch["sampling_rate"][0]).input_values
 		if audio_only is False:
 			cls_labels = list(map(lambda e: cls_age_label_map[e], batch[data_args.age_column]))
-			print("cls labels:", cls_labels)
 			with processor.as_target_processor():
 				batch["labels"] = processor(batch[data_args.target_text_column]).input_ids
 			for i in range(len(cls_labels)):

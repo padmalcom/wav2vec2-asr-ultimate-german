@@ -17,7 +17,6 @@ class DataCollatorCTCWithPadding:
 		if self.audio_only is False:
 			label_features = [{"input_ids": feature["labels"][:-1]} for feature in features]
 			cls_labels = [feature["labels"][-1] for feature in features]
-			print("label features:", label_features, "cls_labels:", cls_labels)
 			
 		batch = self.processor.pad(
 			input_features,
