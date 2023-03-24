@@ -14,10 +14,11 @@ import librosa
 import os
 import torch
 import numpy as np
+import json
 from model import Wav2Vec2ForCTCnCLS
 from ctctrainer import CTCTrainer
 from datacollator import DataCollatorCTCWithPadding
-from tokenizer import build_tokenizer
+#from tokenizer import build_tokenizer
 
 @dataclass
 class DataTrainingArguments:
@@ -33,6 +34,8 @@ class ModelArguments:
 	cache_dir = "cache/"
 	freeze_feature_extractor = False
 	alpha = 0.1
+	
+chars_to_ignore_regex = '[\,\?\.\!\-\;\:\"\“\-]'
 				
 if __name__ == "__main__":
 	parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
@@ -51,12 +54,38 @@ if __name__ == "__main__":
 	print("Test:", dataset['test'])
 	print("Test0:", dataset['test'][0])
 	
+	def remove_special_characters(batch):
+		batch["sentence"] = re.sub(chars_to_ignore_regex, '', batch["sentence"]).lower()
+		return batch
+		
+	dataset = dataset.map(remove_special_characters)
+	
 	# create processor
-	feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(
-		model_args.model_name_or_path, cache_dir=model_args.cache_dir
-	)
-	tokenizer = build_tokenizer(training_args.output_dir, dataset['train'], data_args.preprocessing_num_workers)
+	#feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_args.model_name_or_path, cache_dir=model_args.cache_dir)
+	#tokenizer = build_tokenizer(training_args.output_dir, dataset['train'], data_args.preprocessing_num_workers)
+	feature_extractor = Wav2Vec2FeatureExtractor(feature_size=1, sampling_rate=16000, padding_value=0.0, do_normalize=True, return_attention_mask=False)
+	
+	def extract_all_chars(batch):
+		all_text = " ".join(batch["sentence"])
+		vocab = list(set(all_text))
+		return {"vocab": [vocab], "all_text": [all_text]}
+		
+	vocabs = dataset.map(extract_all_chars, batched=True, batch_size=-1, keep_in_memory=True, remove_columns=dataset.column_names["train"])
+	vocab_list = list(set(vocabs["train"]["vocab"][0]) | set(vocabs["test"]["vocab"][0]))
+	vocab_dict = {v: k for k, v in enumerate(vocab_list)}
+	print("vocab dict:", vocab_dict)
+	vocab_dict["|"] = vocab_dict[" "]
+	del vocab_dict[" "]
+	vocab_dict["[UNK]"] = len(vocab_dict)
+	vocab_dict["[PAD]"] = len(vocab_dict)
+	print(len(vocab_dict))
+	with open('vocab.json', 'w') as vocab_file:
+		json.dump(vocab_dict, vocab_file)
+	tokenizer = Wav2Vec2CTCTokenizer("./vocab.json", unk_token="[UNK]", pad_token="[PAD]", word_delimiter_token="|")		
+	tokenizer..save_pretrained(training_args.output_dir) 
+	
 	processor = Wav2Vec2Processor(feature_extractor, tokenizer)
+	print("Processor: ", processor)
 		
 	# create label maps and count of each label class
 	cls_emotion_label_map = {'anger':0, 'boredom':1, 'disgust':2, 'fear':3, 'happiness':4, 'sadness':5, 'neutral':6}
@@ -124,7 +153,7 @@ if __name__ == "__main__":
 		
 	train_dataset = dataset.map(prepare_example, remove_columns=[data_args.speech_file_column])['train']
 	val_dataset = dataset.map(prepare_example, remove_columns=[data_args.speech_file_column])['test']
-			
+	
 	print(train_dataset)
 	print(val_dataset)
 	
@@ -132,10 +161,12 @@ if __name__ == "__main__":
 		batch["input_values"] = processor(batch["speech"], sampling_rate=batch["sampling_rate"][0]).input_values
 		if audio_only is False:
 			cls_labels = list(map(lambda e: cls_age_label_map[e], batch[data_args.age_column]))
+			print("cls labels:", cls_labels)
 			with processor.as_target_processor():
 				batch["labels"] = processor(batch[data_args.target_text_column]).input_ids
 			for i in range(len(cls_labels)):
 				batch["labels"][i].append(cls_labels[i]) # batch["labels"] element has to be a single list
+		# the last item in the labels list is the cls_label
 		return batch
 		
 	train_dataset = train_dataset.map(
@@ -169,7 +200,7 @@ if __name__ == "__main__":
 		ctc_pred_str = processor.batch_decode(ctc_pred_ids)
 		# we do not want to group tokens when computing the metrics
 		ctc_label_str = processor.batch_decode(pred.label_ids[0], group_tokens=False)
-		print("ctc label:", ctc_label_str, "ctc prediction:", ctc_pred_str)
+		print("ctc label:", ctc_label_str, "ctc prediction:", ctc_pred_str, "ctc pred ids:", ctc_pred_ids)
 
 
 		wer = wer_metric.compute(predictions=ctc_pred_str, references=ctc_label_str)
@@ -192,4 +223,4 @@ if __name__ == "__main__":
 		tokenizer=processor.feature_extractor
 	)
 	trainer.train()
-	trainer.save_model() 
+	trainer.save_model(training_args.output_dir) 

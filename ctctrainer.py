@@ -3,12 +3,11 @@ import torch
 
 class CTCTrainer(Trainer):
 
-	def _prepare_inputs(self, inputs):
+	def _prepare_inputs2(self, inputs):
+		print("inputs before:", inputs)
 		for k, v in inputs.items():
 			if isinstance(v, torch.Tensor):
 				kwargs = dict(device=self.args.device)
-				if self.deepspeed and inputs[k].dtype != torch.int64:
-					kwargs.update(dict(dtype=self.args.hf_deepspeed_config.dtype()))
 				inputs[k] = v.to(**kwargs)
 
 			if k == 'labels': # labels are list of tensor, not tensor, special handle here
@@ -21,6 +20,7 @@ class CTCTrainer(Trainer):
 		if self.args.past_index >= 0 and self._past is not None:
 			inputs["mems"] = self._past
 
+		print("inputs after:", inputs)
 		return inputs
 
 	def training_step(self, model, inputs):
