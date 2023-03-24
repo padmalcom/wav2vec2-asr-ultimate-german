@@ -56,7 +56,8 @@ if __name__ == "__main__":
 	print("Test0:", dataset['test'][0])
 	
 	def remove_special_characters(batch):
-		batch["sentence"] = re.sub(chars_to_ignore_regex, '', batch["sentence"]).lower()
+		#batch["sentence"] = re.sub(chars_to_ignore_regex, '', batch["sentence"]).lower()
+		batch["sentence"] = re.sub(r"[^a-zA-ZÄÜÖäüöß ], '', batch["sentence"]).lower()
 		return batch
 		
 	dataset = dataset.map(remove_special_characters)
