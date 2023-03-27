@@ -21,7 +21,8 @@ cls_age_label_class_weights = [0] * len(cls_age_label_map)
 model_path = "ultimate-german/"
 
 vocab_path = os.path.join(model_path, "vocab.json")
-tokenizer = Wav2Vec2CTCTokenizer(vocab_path, unk_token="<unk>", pad_token="<pad>", word_delimiter_token="|")
+#tokenizer = Wav2Vec2CTCTokenizer(vocab_path, unk_token="<unk>", pad_token="<pad>", word_delimiter_token="|")
+tokenizer = Wav2Vec2CTCTokenizer.from_pretrained(model_path)
 
 #feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_path)#, cache_dir=model_args.cache_dir)
 feature_extractor = Wav2Vec2FeatureExtractor(feature_size=1, sampling_rate=16000, padding_value=0.0, do_normalize=True, return_attention_mask=False)

@@ -78,9 +78,9 @@ if __name__ == "__main__":
 	vocab_dict["[UNK]"] = len(vocab_dict)
 	vocab_dict["[PAD]"] = len(vocab_dict)
 	print("vocal length:", len(vocab_dict))
-	with open('vocab.json', 'w') as vocab_file:
+	with open('vocab_new.json', 'w') as vocab_file:
 		json.dump(vocab_dict, vocab_file)
-	tokenizer = Wav2Vec2CTCTokenizer("./vocab.json", unk_token="[UNK]", pad_token="[PAD]", word_delimiter_token="|")		
+	tokenizer = Wav2Vec2CTCTokenizer("./vocab_new.json", unk_token="[UNK]", pad_token="[PAD]", word_delimiter_token="|", do_lower_case=True)		
 	tokenizer.save_pretrained(training_args.output_dir) 
 	
 	processor = Wav2Vec2Processor(feature_extractor, tokenizer)
