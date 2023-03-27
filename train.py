@@ -81,7 +81,7 @@ if __name__ == "__main__":
 	with open('vocab_new.json', 'w', encoding="utf8") as vocab_file:
 		json.dump(vocab_dict, vocab_file)
 	tokenizer = Wav2Vec2CTCTokenizer("./vocab_new.json", unk_token="[UNK]", pad_token="[PAD]", word_delimiter_token="|", do_lower_case=True)		
-	tokenizer.save_pretrained(training_args.output_dir) 
+	tokenizer.save_pretrained(os.path.join(training_args.output_dir, "tokenizer"))
 	
 	processor = Wav2Vec2Processor(feature_extractor, tokenizer)
 		
