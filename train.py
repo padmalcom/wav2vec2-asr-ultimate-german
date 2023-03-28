@@ -60,7 +60,7 @@ if __name__ == "__main__":
 	german_char_map = {ord('ä'):'ae', ord('ü'):'ue', ord('ö'):'oe', ord('ß'):'ss'}
 	
 	def remove_special_characters(batch):
-		batch["sentence"] = batch["sentence"].translate(german_char_map)
+		batch["sentence"] = batch["sentence"].translate(german_char_map).lower()
 		batch["sentence"] = batch["sentence"].encode('ascii', errors='ignore')
 		#batch["sentence"] = re.sub(chars_to_ignore_regex, '', batch["sentence"]).lower()
 		#batch["sentence"] = re.sub(r"[^a-zA-ZÄÜÖäüöß ]", '', batch["sentence"]).lower()
