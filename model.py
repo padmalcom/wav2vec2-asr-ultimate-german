@@ -8,6 +8,7 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 
 	def __init__(self, config, cls_len, cls_weights, alpha=0.01):
 		super().__init__(config)
+		print("Model vocab size:", config.vocab_size, "hidden:", config.hidden_size, "dropout:", config.final_dropout)
 		self.wav2vec2 = Wav2Vec2Model(config)
 		self.dropout = nn.Dropout(config.final_dropout)
 		self.lm_head = nn.Linear(config.hidden_size, config.vocab_size)
