@@ -74,8 +74,6 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 
 		return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
-		#print("foward input values:", input_values)
-		#print("forward attention mask:", attention_mask)
 		outputs = self.wav2vec2(
 			input_values,
 			attention_mask=attention_mask,
@@ -83,7 +81,6 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 			output_hidden_states=output_hidden_states,
 			return_dict=return_dict,
 		)
-		#print("foward outputs:", outputs)
 
 		hidden_states = outputs[0] # this is the last layer's hidden states
 		hidden_states = self.dropout(hidden_states)
@@ -91,10 +88,6 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 		logits_ctc = self.lm_head(hidden_states)
 		logits_cls = self.cls_head(torch.mean(hidden_states, dim=1))
 		
-		#print("foward logits ctc:", logits_ctc)
-		#print("foward logits cls:", logits_cls)
-
-		#print("forward labels:", labels)
 		loss = None
 		if labels is not None:
 			if if_ctc:
@@ -102,13 +95,7 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 			if if_cls:
 				loss_cls = self._cls_loss(logits_cls, labels[1])
 				
-			print("Loss cls: ", loss_cls, "loss_ctc: ", loss_ctc)
-
 			loss = loss_cls + self.alpha * loss_ctc
-
-		# if not return_dict:
-		#	 output = (logits,) + outputs[1:]
-		#	 return ((loss,) + output) if loss is not None else output
 
 		return CausalLMOutput(
 			loss=loss, logits=(logits_ctc, logits_cls), hidden_states=outputs.hidden_states, attentions=outputs.attentions

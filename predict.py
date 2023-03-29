@@ -22,17 +22,13 @@ model_path = "ultimate-german/"
 
 vocab_path = os.path.join(model_path, "tokenizer", "vocab.json")
 tokenizer = Wav2Vec2CTCTokenizer(vocab_path, unk_token="<unk>", pad_token="<pad>", word_delimiter_token="|")
-#tokenizer = Wav2Vec2CTCTokenizer.from_pretrained(model_path)
 
-#feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_path)#, cache_dir=model_args.cache_dir)
 feature_extractor = Wav2Vec2FeatureExtractor(feature_size=1, sampling_rate=16000, padding_value=0.0, do_normalize=True, return_attention_mask=False)
 
 processor = Wav2Vec2Processor(feature_extractor, tokenizer)
 
 model = Wav2Vec2ForCTCnCLS.from_pretrained(
 	model_path,
-	#cache_dir=model_args.cache_dir,
-	#gradient_checkpointing=False,
 	vocab_size=len(processor.tokenizer),
 	cls_len=len(cls_age_label_map),
 	cls_weights=cls_age_label_class_weights,
@@ -62,9 +58,6 @@ print("Val dataset:", val_dataset)
 trainer = CTCTrainer(
 	model=model,
 	data_collator=data_collator,
-	#args=training_args,
-	#compute_metrics=compute_metrics,
-	#train_dataset=train_dataset,
 	eval_dataset=val_dataset,
 	tokenizer=processor.feature_extractor,
 )
@@ -78,7 +71,6 @@ print("logits ctc:", logits_ctc, "logits cls:", logits_cls)
 
 # process age classification
 pred_ids_cls = np.argmax(logits_cls, axis=-1)
-#pred_probs_cls = F.softmax(torch.from_numpy(logits_cls).float(), dim=-1)
 pred_age = pred_ids_cls[0]
 age_class = [k for k, v in cls_age_label_map.items() if v == pred_age]
 print("Predicted age: ", age_class[0])

@@ -34,6 +34,50 @@ class ModelArguments:
 	cache_dir = "cache/"
 	freeze_feature_extractor = True
 	alpha = 0.1
+	
+def build_tokenizer(model_output_dir, dataset):
+
+	def extract_all_chars(batch):
+		all_text = " ".join(batch["sentence"]).replace("<unk>", "")
+		return {"all_text": [all_text]}
+
+	vocab_train = dataset["train"].map(
+		extract_all_chars,
+		batched=True,
+		batch_size=-1,
+		remove_columns=dataset.column_names["train"],
+		num_proc=1
+	)
+	
+	print("VOCAB TRAIN:", vocab_train)
+
+	special_vocab_dict = {"<pad>": 0, "<s>": 1, "</s>": 2, "<unk>": 3, "|": 4}
+
+	min_char_occurrence = 1
+
+	if min_char_occurrence > 1:
+		character_counter = collections.Counter(vocab_train["all_text"][0])
+		vocab_list = [character for character, count in character_counter.items() if count >= min_char_occurrence]
+	else:
+		vocab_list = set(vocab_train["all_text"][0])
+
+	vocab_list = [x for x in vocab_list if x.isalpha() or x in ["-", "'"]] # removing non-alpha (except - or ') characters
+
+	vocab_list = sorted(vocab_list)
+	vocab_dict = {v: k + len(special_vocab_dict) for k, v in enumerate(vocab_list)}
+	vocab_dict = dict(special_vocab_dict, **vocab_dict)
+
+	vocab_path = os.path.join(model_output_dir, "vocab.json")
+
+	with open(vocab_path, "w") as vocab_file:
+		json.dump(vocab_dict, vocab_file)
+
+	return Wav2Vec2CTCTokenizer(
+		vocab_path,
+		unk_token="<unk>",
+		pad_token="<pad>",
+		word_delimiter_token="|",
+	)
 					
 if __name__ == "__main__":
 	parser = HfArgumentParser((ModelArguments, DataTrainingArguments, TrainingArguments))
@@ -51,43 +95,38 @@ if __name__ == "__main__":
 	print("Dataset:", dataset)
 	print("Test:", dataset['test'])
 	print("Test0:", dataset['test'][0])
-		
-	#chars_to_ignore_regex = '[\,\¿\?\.\¡\!\-\;\:\"\“\%\‘\”\￼\…\’\ː\'\‹\›\`\´\®\—\→\–\„\à\ắ\ś\ě\5\ı\ć\ô\å\ā\č\ñ\ø\«\ọ\ș\ë\š\ğ\»\ב\ł\ę\ş\ǐ\ń\â\đ\ע\ă\á\ý\ź\ã\ō\ʿ\ú\ứ\ą\ó\ê\é\א\נ\ʻ\ț\ש\í\‚\š\đ\ś\ş\ł]'
-	#chars_to_ignore_pattern = re.compile(chars_to_ignore_regex)
-	
+			
 	german_char_map = {ord('ä'):'ae', ord('ü'):'ue', ord('ö'):'oe', ord('ß'):'ss'}
 	
 	def remove_special_characters(batch):
 		batch["sentence"] = batch["sentence"].translate(german_char_map).lower()
 		batch["sentence"] = batch["sentence"].encode('ascii', errors='ignore')
-		#batch["sentence"] = re.sub(chars_to_ignore_regex, '', batch["sentence"]).lower()
-		#batch["sentence"] = re.sub(r"[^a-zA-ZÄÜÖäüöß ]", '', batch["sentence"]).lower()
+		print("Batch:", batch)
 		return batch
 		
 	dataset = dataset.map(remove_special_characters)
 	
 	# create processor
-	#feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(model_args.model_name_or_path, cache_dir=model_args.cache_dir)
-	#tokenizer = build_tokenizer(training_args.output_dir, dataset['train'], data_args.preprocessing_num_workers)
 	feature_extractor = Wav2Vec2FeatureExtractor(feature_size=1, sampling_rate=16000, padding_value=0.0, do_normalize=True, return_attention_mask=False)
 	
-	def extract_all_chars(batch):
-		all_text = " ".join(batch["sentence"])
-		vocab = list(set(all_text))
-		return {"vocab": [vocab], "all_text": [all_text]}
+	#def extract_all_chars(batch):
+	#	all_text = " ".join(batch["sentence"]).replace("<unk>", "")
+	#	vocab = list(set(all_text))
+	#	return {"vocab": [vocab], "all_text": [all_text]}
 		
-	vocabs = dataset.map(extract_all_chars, batched=True, batch_size=-1, keep_in_memory=True, remove_columns=dataset.column_names["train"])
-	vocab_list = list(set(vocabs["train"]["vocab"][0]) | set(vocabs["test"]["vocab"][0]))
-	vocab_dict = {v: k for k, v in enumerate(vocab_list)}
-	print("vocab dict:", vocab_dict)
-	vocab_dict["|"] = vocab_dict[" "]
-	del vocab_dict[" "]
-	vocab_dict["[UNK]"] = len(vocab_dict)
-	vocab_dict["[PAD]"] = len(vocab_dict)
-	print("vocal length:", len(vocab_dict))
-	with open('vocab_new.json', 'w', encoding="utf8") as vocab_file:
-		json.dump(vocab_dict, vocab_file)
-	tokenizer = Wav2Vec2CTCTokenizer("./vocab_new.json", unk_token="[UNK]", pad_token="[PAD]", word_delimiter_token="|", do_lower_case=True)		
+	#vocabs = dataset.map(extract_all_chars, batched=True, batch_size=-1, keep_in_memory=True, remove_columns=dataset.column_names["train"])
+	#vocab_list = list(set(vocabs["train"]["vocab"][0]) | set(vocabs["test"]["vocab"][0]))
+	#vocab_dict = {v: k for k, v in enumerate(vocab_list)}
+	#print("vocab dict:", vocab_dict)
+	#vocab_dict["|"] = vocab_dict[" "]
+	#del vocab_dict[" "]
+	#vocab_dict["[UNK]"] = len(vocab_dict)
+	#vocab_dict["[PAD]"] = len(vocab_dict)
+	#print("vocal length:", len(vocab_dict))
+	#with open('vocab_new.json', 'w', encoding="utf8") as vocab_file:
+	#	json.dump(vocab_dict, vocab_file)
+	#tokenizer = Wav2Vec2CTCTokenizer("./vocab_new.json", unk_token="[UNK]", pad_token="[PAD]", word_delimiter_token="|", do_lower_case=True)		
+	tokenizer = build_tokenizer(training_args.output_dir, dataset)
 	tokenizer.save_pretrained(os.path.join(training_args.output_dir, "tokenizer"))
 	
 	processor = Wav2Vec2Processor(feature_extractor=feature_extractor, tokenizer=tokenizer)
@@ -159,8 +198,8 @@ if __name__ == "__main__":
 	train_dataset = dataset.map(prepare_example, remove_columns=[data_args.speech_file_column])['train']
 	val_dataset = dataset.map(prepare_example, remove_columns=[data_args.speech_file_column])['test']
 	
-	print(train_dataset)
-	print(val_dataset)
+	print("train:", train_dataset[0])
+	#print("eval:", val_dataset[0])
 	
 	def prepare_dataset(batch, audio_only=False):
 		batch["input_values"] = processor(batch["speech"], sampling_rate=batch["sampling_rate"][0]).input_values
