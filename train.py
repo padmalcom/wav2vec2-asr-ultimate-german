@@ -52,7 +52,7 @@ if __name__ == "__main__":
 	print("Test:", dataset['test'])
 	print("Test0:", dataset['test'][0])
 			
-	german_char_map = {ord('ä'):'ae', ord('ü'):'ue', ord('ö'):'oe', ord('ß'):'ss', org('Ä'): 'Ae', ord('Ü'):'Ue', ord('Ö'):'Oe'}
+	german_char_map = {ord('ä'):'ae', ord('ü'):'ue', ord('ö'):'oe', ord('ß'):'ss', ord('Ä'): 'Ae', ord('Ü'):'Ue', ord('Ö'):'Oe'}
 	
 	def remove_special_characters(batch):
 		batch["sentence"] = batch["sentence"].translate(german_char_map)
