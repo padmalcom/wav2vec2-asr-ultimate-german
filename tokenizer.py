@@ -2,25 +2,31 @@ import os
 import json
 from transformers import Wav2Vec2CTCTokenizer
 
-def build_tokenizer(model_output_dir, dataset, num_proc):
+def build_tokenizer(model_output_dir, dataset):
 
 	def extract_all_chars(batch):
-		cleared_batch = [x for x in batch["sentence"] if x is not None]
-		all_text = " ".join(cleared_batch).replace("<unk>", "")
+		all_text = " ".join(batch["sentence"]).replace("<unk>", "")
 		return {"all_text": [all_text]}
 
-	vocab_train = dataset.map(
+	vocab_train = dataset["train"].map(
 		extract_all_chars,
 		batched=True,
 		batch_size=-1,
-		remove_columns=dataset.column_names,
-		num_proc=num_proc
+		remove_columns=dataset.column_names["train"],
+		num_proc=1
 	)
+	
+	print("VOCAB TRAIN:", vocab_train)
 
-	print("vocab_train:", vocab_train)
 	special_vocab_dict = {"<pad>": 0, "<s>": 1, "</s>": 2, "<unk>": 3, "|": 4}
 
-	vocab_list = set(vocab_train["all_text"][0])
+	min_char_occurrence = 1
+
+	if min_char_occurrence > 1:
+		character_counter = collections.Counter(vocab_train["all_text"][0])
+		vocab_list = [character for character, count in character_counter.items() if count >= min_char_occurrence]
+	else:
+		vocab_list = set(vocab_train["all_text"][0])
 
 	vocab_list = [x for x in vocab_list if x.isalpha() or x in ["-", "'"]] # removing non-alpha (except - or ') characters
 
@@ -29,7 +35,7 @@ def build_tokenizer(model_output_dir, dataset, num_proc):
 	vocab_dict = dict(special_vocab_dict, **vocab_dict)
 
 	vocab_path = os.path.join(model_output_dir, "vocab.json")
-	print("Vocab: ", vocab_dict)
+
 	with open(vocab_path, "w") as vocab_file:
 		json.dump(vocab_dict, vocab_file)
 
