@@ -18,6 +18,11 @@ disable_caching()
 
 cls_age_label_map = {'teens':0, 'twenties': 1, 'thirties': 2, 'fourties': 3, 'fifties': 4, 'sixties': 5, 'seventies': 6, 'eighties': 7}
 cls_age_label_class_weights = [0] * len(cls_age_label_map)
+
+cls_gender_label_map = {'female': 0, 'male': 1}
+cls_gender_class_weights = [0] * len(cls_gender_label_map)
+	
+	
 model_path = "ultimate-german/"
 
 vocab_path = os.path.join(model_path, "tokenizer", "vocab.json")

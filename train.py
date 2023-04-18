@@ -25,6 +25,7 @@ class DataTrainingArguments:
 	target_text_column = "sentence"
 	speech_file_column = "file"
 	age_column = "age"
+	gender_column = "gender"
 	preprocessing_num_workers = 1
 	output_dir = "output/tmp"
 	
@@ -56,7 +57,6 @@ if __name__ == "__main__":
 	
 	def remove_special_characters(batch):
 		batch["sentence"] = batch["sentence"].translate(german_char_map)
-		#batch["sentence"] = batch["sentence"].lower()
 		batch["sentence"] = batch["sentence"].encode('ascii', errors='ignore')
 		return batch
 		
@@ -78,7 +78,7 @@ if __name__ == "__main__":
 	cls_emotion_class_weights = [0] * len(cls_emotion_label_map)
 	
 	cls_age_label_map = {'teens':0, 'twenties': 1, 'thirties': 2, 'fourties': 3, 'fifties': 4, 'sixties': 5, 'seventies': 6, 'eighties': 7}
-	cls_age_label_class_weights = [0] * len(cls_age_label_map)
+	cls_age_class_weights = [0] * len(cls_age_label_map)
 	
 	cls_gender_label_map = {'female': 0, 'male': 1}
 	cls_gender_class_weights = [0] * len(cls_gender_label_map)
@@ -89,8 +89,8 @@ if __name__ == "__main__":
 	df_age_count = df.groupby(['age']).count()
 	for index, k in enumerate(cls_age_label_map):
 		if k in df_age_count.index:
-			cls_age_label_class_weights[index] = 1 - (df_age_count.loc[k]['file'] / df.size)
-	print("Age label weights:", cls_age_label_class_weights)
+			cls_age_class_weights[index] = 1 - (df_age_count.loc[k]['file'] / df.size)
+	print("Age label weights:", cls_age_class_weights)
 	
 	df_emotion_count = df.groupby(['emotion']).count()
 	for index, k in enumerate(cls_emotion_label_map):
@@ -110,8 +110,10 @@ if __name__ == "__main__":
 		cache_dir=model_args.cache_dir,
 		gradient_checkpointing=True,
 		vocab_size=len(processor.tokenizer),
-		cls_len=len(cls_age_label_map),
-		cls_weights=cls_age_label_class_weights,
+		age_cls_len=len(cls_age_label_map),
+		age_cls_weights=cls_age_class_weights,
+		gender_cls_len=len(cls_gender_label_map),
+		gender_cls_weights=cls_gender_class_weights,
 		alpha=model_args.alpha,
 	)
 	
@@ -144,11 +146,14 @@ if __name__ == "__main__":
 	def prepare_dataset(batch, audio_only=False):
 		batch["input_values"] = processor(batch["speech"], sampling_rate=batch["sampling_rate"][0]).input_values
 		if audio_only is False:
-			cls_labels = list(map(lambda e: cls_age_label_map[e], batch[data_args.age_column]))
+			age_cls_labels = list(map(lambda e: cls_age_label_map[e], batch[data_args.age_column]))
+			gender_cls_labels = list(map(lambda e: cls_gender_label_map[e], batch[data_args.gender_column]))
 			with processor.as_target_processor():
 				batch["labels"] = processor(batch[data_args.target_text_column]).input_ids
-			for i in range(len(cls_labels)):
-				batch["labels"][i].append(cls_labels[i]) # batch["labels"] element has to be a single list
+			for i in range(len(gender_cls_labels)):
+				batch["labels"][i].append(gender_cls_labels[i]) # batch["labels"] element has to be a single list
+			for i in range(len(age_cls_labels)):
+				batch["labels"][i].append(age_cls_labels[i]) # batch["labels"] element has to be a single list
 		# the last item in the labels list is the cls_label
 		return batch
 		
@@ -170,12 +175,20 @@ if __name__ == "__main__":
 	
 	def compute_metrics(pred):
 		print("Metrics predictions: ", pred.predictions)
-		cls_pred_logits = pred.predictions[1]
-		cls_pred_ids = np.argmax(cls_pred_logits, axis=-1)
-		print("cls pred ids:", cls_pred_ids)
-		total = len(pred.label_ids[1])
-		print("cls pred ids:", cls_pred_ids, "pred labels:", pred.label_ids[1])
-		correct = (cls_pred_ids == pred.label_ids[1]).sum().item() # label = (ctc_label, cls_label)
+				
+		age_cls_pred_logits = pred.predictions[1]
+		age_cls_pred_ids = np.argmax(age_cls_pred_logits, axis=-1)
+		print("age cls pred ids:", age_cls_pred_ids)
+		age_total = len(pred.label_ids[1])
+		print("age cls pred ids:", age_cls_pred_ids, "age pred labels:", pred.label_ids[1])
+		age_correct = (age_cls_pred_ids == pred.label_ids[1]).sum().item() # label = (ctc_label, cls_label)
+		
+		gender_cls_pred_logits = pred.predictions[2]
+		gender_cls_pred_ids = np.argmax(gender_cls_pred_logits, axis=-1)
+		print("gender cls pred ids:", gender_cls_pred_ids)
+		gender_total = len(pred.label_ids[2])
+		print("gender cls pred ids:", gender_cls_pred_ids, "gender pred labels:", pred.label_ids[2])
+		gender_correct = (gender_cls_pred_ids == pred.label_ids[2]).sum().item() # label = (ctc_label, cls_label)
 
 		ctc_pred_logits = pred.predictions[0]
 		ctc_pred_ids = np.argmax(ctc_pred_logits, axis=-1)
@@ -187,7 +200,8 @@ if __name__ == "__main__":
 
 
 		wer = wer_metric.compute(predictions=ctc_pred_str, references=ctc_label_str)
-		metric_res = {"acc": correct/total, "wer": wer, "correct": correct, "total": total, "strlen": len(ctc_label_str)}
+		accuracy = ((age_correct / age_total) + (gender_correct / gender_total)) / 2
+		metric_res = {"acc": accuracy, "wer": wer, "correct": age_correct + gender_correct, "total": age_total + gender_total, "strlen": len(ctc_label_str)}
 		print("metric res:", metric_res)
 		return metric_res
 		

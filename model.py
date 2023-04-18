@@ -6,20 +6,20 @@ from torch import nn
 
 class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 
-	def __init__(self, config, cls_len, cls_weights, alpha=0.01):
+	def __init__(self, config, age_cls_len, gender_cls_len, age_cls_weights, gender_cls_weights, alpha=0.01):
 		super().__init__(config)
-		print("Model vocab size:", config.vocab_size, "hidden:", config.hidden_size, "dropout:", config.final_dropout)
 		self.wav2vec2 = Wav2Vec2Model(config)
 		self.dropout = nn.Dropout(config.final_dropout)
 		self.lm_head = nn.Linear(config.hidden_size, config.vocab_size)
-		self.cls_head = nn.Linear(config.hidden_size, cls_len)
+		self.age_cls_head = nn.Linear(config.hidden_size, age_cls_len)
+		self.gender_cls_head = nn.Linear(config.hidden_size, gender_cls_len)
 		self.init_weights()
-		self.cls_weights = cls_weights
+		self.age_cls_weights = age_cls_weights
+		self.gender_cls_weights = gender_cls_weights
 		self.alpha = alpha
 
 	def freeze_feature_extractor(self):
 		self.wav2vec2.feature_extractor._freeze_parameters()
-
 
 	def _ctc_loss(self, logits, labels, input_values, attention_mask=None):
 		loss = None
@@ -52,11 +52,11 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 
 		return loss
 
-
-	def _cls_loss(self, logits, cls_labels): # sum hidden_states over dim 1 (the sequence length), then feed into self.cls
+	# use this function for all classification tasks
+	def _cls_loss(self, logits, cls_labels, cls_weights): # sum hidden_states over dim 1 (the sequence length), then feed into self.cls
 		loss = None
 		if cls_labels is not None:
-			loss = F.cross_entropy(logits, cls_labels.to(logits.device), weight=torch.tensor(self.cls_weights, device=logits.device, dtype=torch.float))
+			loss = F.cross_entropy(logits, cls_labels.to(logits.device), weight=torch.tensor(cls_weights, device=logits.device, dtype=torch.float))
 		return loss
 
 
@@ -67,9 +67,7 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 		output_attentions=None,
 		output_hidden_states=None,
 		return_dict=None,
-		labels=None, # tuple: (ctc_labels, cls_labels), shape=(batch_size, target_length)
-		if_ctc=True,
-		if_cls=True,
+		labels=None, # tuple: (ctc_labels, age_cls_labels, gender_cls_labels), shape=(batch_size, target_length)
 		):
 
 		return_dict = return_dict if return_dict is not None else self.config.use_return_dict
@@ -86,19 +84,18 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 		hidden_states = self.dropout(hidden_states)
 
 		logits_ctc = self.lm_head(hidden_states)
-		logits_cls = self.cls_head(torch.mean(hidden_states, dim=1))
+		logits_age_cls = self.age_cls_head(torch.mean(hidden_states, dim=1))
+		logits_gender_cls = self.gender_cls_head(torch.mean(hidden_states, dim=1))
 		
 		loss = None
 		if labels is not None:
-			if if_ctc:
-				loss_ctc = self._ctc_loss(logits_ctc, labels[0], input_values, attention_mask)
-			if if_cls:
-				loss_cls = self._cls_loss(logits_cls, labels[1])
-				
-			loss = loss_cls + self.alpha * loss_ctc
+			loss_ctc = self._ctc_loss(logits_ctc, labels[0], input_values, attention_mask)
+			loss_age_cls = self._cls_loss(logits_age_cls, labels[1], self.age_cls_weights)
+			loss_gender_cls = self._cls_loss(logits_gender_cls, labels[2], self.gender_cls_weights)				
+			loss = loss_age_cls + loss_gender_cls + self.alpha * loss_ctc
 
 		return CausalLMOutput(
-			loss=loss, logits=(logits_ctc, logits_cls), hidden_states=outputs.hidden_states, attentions=outputs.attentions
+			loss=loss, logits=(logits_ctc, loss_age_cls, loss_gender_cls), hidden_states=outputs.hidden_states, attentions=outputs.attentions
 		)
 
 		
