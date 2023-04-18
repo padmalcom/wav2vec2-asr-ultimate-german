@@ -31,7 +31,8 @@ class DataTrainingArguments:
 	
 @dataclass
 class ModelArguments:
-	model_name_or_path = "facebook/wav2vec2-base"
+	#model_name_or_path = "facebook/wav2vec2-base"
+	model_name_or_path = "facebook/wav2vec2-large-xlsr-53"
 	cache_dir = "cache/"
 	freeze_feature_extractor = True
 	alpha = 0.1
