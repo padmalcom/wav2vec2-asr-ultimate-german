@@ -175,7 +175,7 @@ if __name__ == "__main__":
 	data_collator = DataCollatorCTCWithPadding(processor=processor, padding=True)
 	
 	def compute_metrics(pred):
-		print("Metrics predictions: ", pred.predictions)
+		print("Metrics:")
 				
 		age_cls_pred_logits = pred.predictions[1]
 		age_cls_pred_ids = np.argmax(age_cls_pred_logits, axis=-1)
@@ -197,11 +197,14 @@ if __name__ == "__main__":
 		ctc_pred_str = processor.batch_decode(ctc_pred_ids)
 		# we do not want to group tokens when computing the metrics
 		ctc_label_str = processor.batch_decode(pred.label_ids[0], group_tokens=False)
-		print("ctc label:", ctc_label_str, "ctc prediction:", ctc_pred_str, "ctc pred ids:", ctc_pred_ids)
+		print("ctc label:", ctc_label_str[0], "ctc prediction:", ctc_pred_str[0], "ctc pred ids:", ctc_pred_ids)
 
 
 		wer = wer_metric.compute(predictions=ctc_pred_str, references=ctc_label_str)
 		accuracy = ((age_correct / age_total) + (gender_correct / gender_total)) / 2
+		print("Age correct:", age_correct, "of total:", age_total)
+		print("Gender correct:", gender_correct, "of total:", gender_total)
+		
 		metric_res = {"acc": accuracy, "wer": wer, "correct": age_correct + gender_correct, "total": age_total + gender_total, "strlen": len(ctc_label_str)}
 		print("metric res:", metric_res)
 		return metric_res
