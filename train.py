@@ -182,14 +182,16 @@ if __name__ == "__main__":
 		print("age cls pred ids:", age_cls_pred_ids)
 		age_total = len(pred.label_ids[1])
 		print("age cls pred ids:", age_cls_pred_ids, "age pred labels:", pred.label_ids[1])
-		age_correct = (age_cls_pred_ids == pred.label_ids[1]).sum().item() # label = (ctc_label, cls_label)
+		print("Comparing age prediction", age_cls_pred_ids, "to", pred.label_ids[1])
+		age_correct = (age_cls_pred_ids == pred.label_ids[1]).sum().item()
 		
 		gender_cls_pred_logits = pred.predictions[2]
 		gender_cls_pred_ids = np.argmax(gender_cls_pred_logits, axis=-1)
 		print("gender cls pred ids:", gender_cls_pred_ids)
 		gender_total = len(pred.label_ids[2])
 		print("gender cls pred ids:", gender_cls_pred_ids, "gender pred labels:", pred.label_ids[2])
-		gender_correct = (gender_cls_pred_ids == pred.label_ids[2]).sum().item() # label = (ctc_label, cls_label)
+		print("Comparing gender prediction", gender_cls_pred_ids, "to", pred.label_ids[2])
+		gender_correct = (gender_cls_pred_ids == pred.label_ids[2]).sum().item()
 
 		ctc_pred_logits = pred.predictions[0]
 		ctc_pred_ids = np.argmax(ctc_pred_logits, axis=-1)
