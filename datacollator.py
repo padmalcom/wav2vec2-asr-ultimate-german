@@ -16,8 +16,8 @@ class DataCollatorCTCWithPadding:
 		input_features = [{"input_values": feature["input_values"]} for feature in features]
 		if self.audio_only is False:
 			label_features = [{"input_ids": feature["labels"][:-2]} for feature in features]
-			age_cls_labels = [feature["labels"][-2] for feature in features] # exchange -2 and -1?
-			gender_cls_labels = [feature["labels"][-1] for feature in features]
+			age_cls_labels = [feature["labels"][-1] for feature in features]
+			gender_cls_labels = [feature["labels"][-2] for feature in features]
 			
 		batch = self.processor.pad(
 			input_features,
