@@ -4,7 +4,7 @@ import torch
 class CTCTrainer(Trainer):
 
 	def _prepare_inputs2(self, inputs):
-		print("inputs before:", inputs)
+		#print("inputs before:", inputs)
 		for k, v in inputs.items():
 			if isinstance(v, torch.Tensor):
 				kwargs = dict(device=self.args.device)
@@ -19,7 +19,7 @@ class CTCTrainer(Trainer):
 		if self.args.past_index >= 0 and self._past is not None:
 			inputs["mems"] = self._past
 
-		print("inputs after:", inputs)
+		#print("inputs after:", inputs)
 		return inputs				
 				
 	def training_step(self, model, inputs):

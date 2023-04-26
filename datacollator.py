@@ -18,7 +18,7 @@ class DataCollatorCTCWithPadding:
 			label_features = [{"input_ids": feature["labels"][:-2]} for feature in features]
 			age_cls_labels = [feature["labels"][-1] for feature in features]
 			gender_cls_labels = [feature["labels"][-2] for feature in features]
-			print("Collator age labels: ", age_cls_labels, " gender labels:", gender_cls_labels)
+			#print("Collator age labels: ", age_cls_labels, " gender labels:", gender_cls_labels)
 			
 		batch = self.processor.pad(
 			input_features,

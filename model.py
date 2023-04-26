@@ -89,14 +89,14 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 		
 		loss = None
 		if labels is not None:
-			print("labels in forward:", "label1 (age):", labels[1], "label2 (gender):", labels[2])
+			#print("labels in forward:", "label1 (age):", labels[1], "label2 (gender):", labels[2])
 			loss_ctc = self._ctc_loss(logits_ctc, labels[0], input_values, attention_mask)
 			loss_age_cls = self._cls_loss(logits_age_cls, labels[1], self.age_cls_weights)
 			loss_gender_cls = self._cls_loss(logits_gender_cls, labels[2], self.gender_cls_weights)				
 			loss = loss_age_cls + loss_gender_cls + self.alpha * loss_ctc
 
 		return CausalLMOutput(
-			loss=loss, logits=(logits_ctc, loss_age_cls, loss_gender_cls), hidden_states=outputs.hidden_states, attentions=outputs.attentions
+			loss=loss, logits=(logits_ctc, loss_gender_cls, loss_age_cls), hidden_states=outputs.hidden_states, attentions=outputs.attentions
 		)
 
 		
