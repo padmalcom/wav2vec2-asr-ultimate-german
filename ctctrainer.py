@@ -16,6 +16,12 @@ class CTCTrainer(Trainer):
 					new_labels.append(inputs[k][i].to(**kwargs))
 				inputs[k] = tuple(new_labels)
 				
+		if self.args.past_index >= 0 and self._past is not None:
+			inputs["mems"] = self._past
+
+		print("inputs after:", inputs)
+		return inputs				
+				
 	def training_step(self, model, inputs):
 		model.train()
 		inputs = self._prepare_inputs2(inputs)
