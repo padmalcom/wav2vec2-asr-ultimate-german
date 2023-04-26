@@ -2,9 +2,23 @@ from transformers import Trainer
 import torch
 
 class CTCTrainer(Trainer):
+
+	def _prepare_inputs2(self, inputs):
+		print("inputs before:", inputs)
+		for k, v in inputs.items():
+			if isinstance(v, torch.Tensor):
+				kwargs = dict(device=self.args.device)
+				inputs[k] = v.to(**kwargs)
+
+			if k == 'labels': # labels are list of tensor, not tensor, special handle here
+				new_labels = []
+				for i in range(len(inputs[k])):
+					new_labels.append(inputs[k][i].to(**kwargs))
+				inputs[k] = tuple(new_labels)
+				
 	def training_step(self, model, inputs):
 		model.train()
-		inputs = self._prepare_inputs(inputs)
+		inputs = self._prepare_inputs2(inputs)
 
 		loss = self.compute_loss(model, inputs)		
 
