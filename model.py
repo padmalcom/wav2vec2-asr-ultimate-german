@@ -89,6 +89,7 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 		
 		loss = None
 		if labels is not None:
+			print("labels in forward:", labels, "label0:", labels[0], "label1:", labels[1], "label2:", labels[2])
 			loss_ctc = self._ctc_loss(logits_ctc, labels[0], input_values, attention_mask)
 			loss_age_cls = self._cls_loss(logits_age_cls, labels[1], self.age_cls_weights)
 			loss_gender_cls = self._cls_loss(logits_gender_cls, labels[2], self.gender_cls_weights)				
