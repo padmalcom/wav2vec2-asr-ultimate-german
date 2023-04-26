@@ -81,7 +81,7 @@ if __name__ == "__main__":
 	cls_age_label_map = {'teens':0, 'twenties': 1, 'thirties': 2, 'fourties': 3, 'fifties': 4, 'sixties': 5, 'seventies': 6, 'eighties': 7}
 	cls_age_class_weights = [0] * len(cls_age_label_map)
 	
-	cls_gender_label_map = {'female': 0, 'male': 1}
+	cls_gender_label_map = {'female': 10, 'male': 11}
 	cls_gender_class_weights = [0] * len(cls_gender_label_map)
 	
 	# count label sizes in train to balance classes
