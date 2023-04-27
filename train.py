@@ -180,7 +180,10 @@ if __name__ == "__main__":
 	def compute_metrics(pred):
 		print("Metrics type:", type(pred.predictions), "metrics shape: ", len(pred.predictions))
 		
+		print("Pred 0 type:", type(pred.predictions[0]), " shape: ", pred.predictions[0].shape)
 		print("Pred 1 type:", type(pred.predictions[1]), " shape: ", pred.predictions[1].shape)
+		print("Pred 2 type:", type(pred.predictions[2]), " shape: ", pred.predictions[2].shape)
+		
 		age_cls_pred_logits = pred.predictions[1]
 		age_cls_pred_ids = np.argmax(age_cls_pred_logits, axis=-1)
 		print("age cls pred ids:", age_cls_pred_ids)
