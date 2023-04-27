@@ -156,11 +156,11 @@ if __name__ == "__main__":
 				print("Batch labels 0:", batch["labels"])
 			#for i in range(len(gender_cls_labels)):
 			#	batch["labels"][i].append(gender_cls_labels[i]) # batch["labels"] element has to be a single list
-			batch["labels"].extend(gender_cls_labels)
+			batch["labels"][0].extend(gender_cls_labels)
 			print("Batch labels 1:", batch["labels"])
 			#for i in range(len(age_cls_labels)):
 			#	batch["labels"][i].append(age_cls_labels[i]) # batch["labels"] element has to be a single list
-			batch["labels"].extend(age_cls_labels)
+			batch["labels"][0].extend(age_cls_labels)
 			print("Batch labels 2:", batch["labels"])
 		# the last item in the labels list is the cls_label
 		return batch
