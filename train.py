@@ -149,22 +149,16 @@ if __name__ == "__main__":
 		if audio_only is False:
 			age_cls_labels = list(map(lambda e: cls_age_label_map[e], batch[data_args.age_column]))
 			gender_cls_labels = list(map(lambda e: cls_gender_label_map[e], batch[data_args.gender_column]))
-			print("Length age_cls_labels:", len(age_cls_labels), "length gender_cls_labels:", len(gender_cls_labels))
-			print("Content age_cls_labels:", age_cls_labels, "content gender_cls_labels:", gender_cls_labels)
 			with processor.as_target_processor():
 				batch["labels"] = processor(batch[data_args.target_text_column]).input_ids
-				print("Batch labels 0:", batch["labels"])
 
 			for i in range(len(gender_cls_labels)):
-				print("Appending gender with index", i, "and content", gender_cls_labels[i])
 				batch["labels"][i].append(gender_cls_labels[i]) # batch["labels"] element has to be a single list
-			print("Batch labels 1:", batch["labels"])
 
 			for i in range(len(age_cls_labels)):
-				print("Appending age with index", i, "and content", age_cls_labels[i])
 				batch["labels"][i].append(age_cls_labels[i]) # batch["labels"] element has to be a single list
-			print("Batch labels 2:", batch["labels"])
-		# the last item in the labels list is the cls_label
+
+		# the last items in the labels list are: gender label and age label
 		return batch
 		
 	train_dataset = train_dataset.map(
