@@ -154,11 +154,13 @@ if __name__ == "__main__":
 			with processor.as_target_processor():
 				batch["labels"] = processor(batch[data_args.target_text_column]).input_ids
 				print("Batch labels 0:", batch["labels"])
-			for i in range(len(gender_cls_labels)):
-				batch["labels"][i].append(gender_cls_labels[i]) # batch["labels"] element has to be a single list
+			#for i in range(len(gender_cls_labels)):
+			#	batch["labels"][i].append(gender_cls_labels[i]) # batch["labels"] element has to be a single list
+			batch["labels"].extend(gender_cls_labels)
 				print("Batch labels 1:", batch["labels"])
-			for i in range(len(age_cls_labels)):
-				batch["labels"][i].append(age_cls_labels[i]) # batch["labels"] element has to be a single list
+			#for i in range(len(age_cls_labels)):
+			#	batch["labels"][i].append(age_cls_labels[i]) # batch["labels"] element has to be a single list
+			batch["labels"].extend(age_cls_labels)
 			print("Batch labels 2:", batch["labels"])
 		# the last item in the labels list is the cls_label
 		return batch
