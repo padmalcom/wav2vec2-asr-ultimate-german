@@ -149,6 +149,8 @@ if __name__ == "__main__":
 		if audio_only is False:
 			age_cls_labels = list(map(lambda e: cls_age_label_map[e], batch[data_args.age_column]))
 			gender_cls_labels = list(map(lambda e: cls_gender_label_map[e], batch[data_args.gender_column]))
+			print("Length age_cls_labels:", len(age_cls_labels), "length gender_cls_labels:", len(gender_cls_labels))
+			print("Content age_cls_labels:", age_cls_labels, "content gender_cls_labels:", gender_cls_labels)
 			with processor.as_target_processor():
 				batch["labels"] = processor(batch[data_args.target_text_column]).input_ids
 				print("Batch labels 0:", batch["labels"])
