@@ -3,8 +3,8 @@ import torch
 
 class CTCTrainer(Trainer):
 
-	def _prepare_inputs2(self, inputs):
-		#print("inputs before:", inputs)
+	# push input data to (cuda) device
+	def _prepare_inputs(self, inputs):
 		for k, v in inputs.items():
 			if isinstance(v, torch.Tensor):
 				kwargs = dict(device=self.args.device)
@@ -19,12 +19,11 @@ class CTCTrainer(Trainer):
 		if self.args.past_index >= 0 and self._past is not None:
 			inputs["mems"] = self._past
 
-		#print("inputs after:", inputs)
 		return inputs				
 				
 	def training_step(self, model, inputs):
 		model.train()
-		inputs = self._prepare_inputs2(inputs)
+		inputs = self._prepare_inputs(inputs)
 
 		loss = self.compute_loss(model, inputs)		
 
