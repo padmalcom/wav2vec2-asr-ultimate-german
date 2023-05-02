@@ -187,7 +187,10 @@ if __name__ == "__main__":
 		print("Pred 1 content:", pred.predictions[1])
 		print("Pred 2 content:", pred.predictions[2])
 		
+		print("Label ids are:", pred.label_ids)
+		
 		age_cls_pred_logits = pred.predictions[1]
+		print("age_cls_pred_logits shape:", age_cls_pred_logits.shape, "age_cls_pred_logits: ", age_cls_pred_logits)
 		age_cls_pred_ids = np.argmax(age_cls_pred_logits, axis=-1)
 		print("age cls pred ids:", age_cls_pred_ids)
 		age_total = len(pred.label_ids[1])
