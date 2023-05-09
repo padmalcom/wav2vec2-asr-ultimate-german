@@ -96,7 +96,7 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 			loss = loss_age_cls + loss_gender_cls + self.alpha * loss_ctc
 
 		return CausalLMOutput(
-			loss=loss, logits=(logits_ctc, loss_age_cls, loss_gender_cls), hidden_states=outputs.hidden_states, attentions=outputs.attentions
+			loss=loss, logits=(logits_ctc, logits_age_cls, logits_gender_cls), hidden_states=outputs.hidden_states, attentions=outputs.attentions
 		)
 
 		
