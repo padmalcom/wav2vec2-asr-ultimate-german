@@ -3,26 +3,21 @@ from transformers import (
 	Wav2Vec2CTCTokenizer,
 	Wav2Vec2Processor
 )
-import os
 import librosa
 from datasets import Dataset
-from datasets import disable_caching
 import numpy as np
-import torch.nn.functional as F
-import torch
 from model import Wav2Vec2ForCTCnCLS
 from ctctrainer import CTCTrainer
 from datacollator import DataCollatorCTCWithPadding
 
-disable_caching()
+model_path = "padmalcom/wav2vec2-asr-ultimate-german"
+pred_data = {'file': ['audio2.wav']}
 
 cls_age_label_map = {'teens':0, 'twenties': 1, 'thirties': 2, 'fourties': 3, 'fifties': 4, 'sixties': 5, 'seventies': 6, 'eighties': 7}
 cls_age_label_class_weights = [0] * len(cls_age_label_map)
 
 cls_gender_label_map = {'female': 0, 'male': 1}
 cls_gender_label_class_weights = [0] * len(cls_gender_label_map)
-		
-model_path = "padmalcom/wav2vec2-asr-ultimate-german"
 
 tokenizer = Wav2Vec2CTCTokenizer("./vocab.json", unk_token="<unk>", pad_token="<pad>", word_delimiter_token="|")
 
@@ -42,12 +37,8 @@ model = Wav2Vec2ForCTCnCLS.from_pretrained(
 
 data_collator = DataCollatorCTCWithPadding(processor=processor, padding=True, audio_only=True)
 	
-pred_data = {'file': ['audio2.wav']}
-
-target_sr = 16000
-
 def prepare_dataset_step1(example):
-	example["speech"], example["sampling_rate"] = librosa.load(example["file"], sr=target_sr)
+	example["speech"], example["sampling_rate"] = librosa.load(example["file"], sr=feature_extractor.sampling_rate)
 	return example
 	
 def prepare_dataset_step2(batch):
@@ -65,8 +56,7 @@ trainer = CTCTrainer(
 	tokenizer=processor.feature_extractor,
 )
 
-data_collator.audio_only=True
-predictions, labels, metrics = trainer.predict(val_dataset, metric_key_prefix="predict")
+predictions, _, _ = trainer.predict(val_dataset, metric_key_prefix="predict")
 logits_ctc, logits_age_cls, logits_gender_cls = predictions
 
 # process age classification
@@ -84,4 +74,4 @@ print("Predicted gender: ", gender_class[0])
 # process token classification
 pred_ids_ctc = np.argmax(logits_ctc, axis=-1)
 pred_str = processor.batch_decode(pred_ids_ctc, output_word_offsets=True)
-print("pred text: ", pred_str.text)
+print("pred text: ", pred_str.text[0])
