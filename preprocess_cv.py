@@ -12,29 +12,6 @@ RAW_DATA_FILE = os.path.join('common-voice-12','validated.tsv')
 TRAIN_FILE = os.path.join("common-voice-12", "train.csv")
 TEST_FILE = os.path.join("common-voice-12", "test.csv")
 TEST_TRAIN_RATIO = 8 # every 8th sample goes into test
-
-### irony
-IRONY_MODEL_NAME = f"cardiffnlp/twitter-roberta-base-irony"
-irony_tokenizer = AutoTokenizer.from_pretrained(IRONY_MODEL_NAME)
-irony_model = AutoModelForSequenceClassification.from_pretrained(IRONY_MODEL_NAME)
-
-def irony(text):
-	labels = ['no irony', 'irony']
-	encoded_input = irony_tokenizer(text, return_tensors='pt')
-	output = irony_model(**encoded_input)
-	scores = output[0][0].detach().numpy()
-	scores = softmax(scores)
-	ranking = np.argsort(scores)
-	ranking = ranking[::-1]
-	max_label = 0
-	max_score = 0
-	for i in range(scores.shape[0]):
-		l = labels[ranking[i]]
-		s = scores[ranking[i]]
-		if s > max_score:
-			max_label = ranking[i]
-			max_score = s
-	return max_label
 	
 ### emotion
 EMOTION_MODEL_NAME = "padmalcom/wav2vec2-large-emotion-detection-german"
@@ -94,14 +71,19 @@ def prepare_data():
 						formatted_sample['age'] = line['age']
 						formatted_sample['gender'] = line['gender']
 						formatted_sample['language'] = line['locale']
+						formatted_sample['accent'] = line['accents']
+						formatted_sample['speaker'] = line['client_id']
 						
 						if (formatted_sample['sentence'] == None or formatted_sample['sentence'] == 'nan' or line['client_id'] == None or line['path'] == None or line['sentence'] == None or line['age'] == None or line['gender'] == None or line['locale'] == None or line['client_id'].strip() == '' or line['path'].strip() == '' or line['sentence'].strip() == '' or line['age'].strip() == '' or line['gender'].strip() == '' or line['locale'].strip() == '' or formatted_sample['sentence'].strip() == ''):
 							#print("Faulty line: ", line)
 							faulty_lines += 1
 							continue
 						
-						# '0' non irony, '1' irony
-						formatted_sample['irony'] = irony(translate(formatted_sample['sentence']))
+						# english text
+						if not line['locale'] == 'en':
+							formatted_sample['eng_sentence'] = translate(formatted_sample['sentence'])
+						else:
+							formatted_sample['eng_sentence'] = formatted_sample['sentence']
 						
 						mp3FullPath = os.path.join('common-voice-12', "clips", line['path'])
 						filename, _ = os.path.splitext(os.path.basename(mp3FullPath))

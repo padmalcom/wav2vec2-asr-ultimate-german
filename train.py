@@ -177,33 +177,15 @@ if __name__ == "__main__":
 	
 	data_collator = DataCollatorCTCWithPadding(processor=processor, padding=True)
 	
-	def compute_metrics(pred):
-		print("Metrics type:", type(pred.predictions), "metrics shape: ", len(pred.predictions))
-		
-		print("Pred 0 type:", type(pred.predictions[0]), " shape: ", pred.predictions[0].shape)
-		print("Pred 1 type:", type(pred.predictions[1]), " shape: ", pred.predictions[1].shape)
-		print("Pred 2 type:", type(pred.predictions[2]), " shape: ", pred.predictions[2].shape)
-		
-		print("Pred 1 content:", pred.predictions[1])
-		print("Pred 2 content:", pred.predictions[2])
-		
-		print("Label ids are:", pred.label_ids)
-		
+	def compute_metrics(pred):	
 		age_cls_pred_logits = pred.predictions[1]
-		print("age_cls_pred_logits shape:", age_cls_pred_logits.shape, "age_cls_pred_logits: ", age_cls_pred_logits)
 		age_cls_pred_ids = np.argmax(age_cls_pred_logits, axis=-1)
-		print("age cls pred ids:", age_cls_pred_ids)
 		age_total = len(pred.label_ids[1])
-		print("age cls pred ids:", age_cls_pred_ids, "age pred labels:", pred.label_ids[1])
-		print("Comparing age prediction", age_cls_pred_ids, "to", pred.label_ids[1])
 		age_correct = (age_cls_pred_ids == pred.label_ids[1]).sum().item()
 		
 		gender_cls_pred_logits = pred.predictions[2]
 		gender_cls_pred_ids = np.argmax(gender_cls_pred_logits, axis=-1)
-		print("gender cls pred ids:", gender_cls_pred_ids)
 		gender_total = len(pred.label_ids[2])
-		print("gender cls pred ids:", gender_cls_pred_ids, "gender pred labels:", pred.label_ids[2])
-		print("Comparing gender prediction", gender_cls_pred_ids, "to", pred.label_ids[2])
 		gender_correct = (gender_cls_pred_ids == pred.label_ids[2]).sum().item()
 
 		ctc_pred_logits = pred.predictions[0]
@@ -212,16 +194,15 @@ if __name__ == "__main__":
 		ctc_pred_str = processor.batch_decode(ctc_pred_ids)
 		# we do not want to group tokens when computing the metrics
 		ctc_label_str = processor.batch_decode(pred.label_ids[0], group_tokens=False)
-		print("ctc label:", ctc_label_str[0], "ctc prediction:", ctc_pred_str[0], "ctc pred ids:", ctc_pred_ids)
 
 
 		wer = wer_metric.compute(predictions=ctc_pred_str, references=ctc_label_str)
 		accuracy = ((age_correct / age_total) + (gender_correct / gender_total)) / 2
-		print("Age correct:", age_correct, "of total:", age_total)
-		print("Gender correct:", gender_correct, "of total:", gender_total)
+		print("Age correct:", age_correct, "of total:", age_total, "accuracy: ", (age_correct / age_total))
+		print("Gender correct:", gender_correct, "of total:", gender_total, "accuracy: ", (gender_correct / gender_total))
 		
 		metric_res = {"acc": accuracy, "wer": wer, "correct": age_correct + gender_correct, "total": age_total + gender_total, "strlen": len(ctc_label_str)}
-		print("metric res:", metric_res)
+		print("metric result:", metric_res)
 		return metric_res
 		
 	if model_args.freeze_feature_extractor:
