@@ -12,7 +12,29 @@ RAW_DATA_FILE = os.path.join('common-voice-12','validated.tsv')
 TRAIN_FILE = os.path.join("common-voice-12", "train.csv")
 TEST_FILE = os.path.join("common-voice-12", "test.csv")
 TEST_TRAIN_RATIO = 8 # every 8th sample goes into test
+
+## dialects
+dialect_map = {
+	'Amerikanisches Deutsch': 'Amerikanisch',
+	'Bayerisch': 'Bayerisch',
+	'Britisches Deutsch': 'Britisch',
+	'Deutschland Deutsch': 'Deutsch',
+	'Deutschland Deutsch,Alemanischer Akzent,Süddeutscher Akzent': 'Süddeutsch',
+	'Deutschland Deutsch,Berliner Deutsch': 'Berlinerisch',
+	'Deutschland Deutsch,Hochdeutsch': 'Deutsch',
+	'Deutschland Deutsch,Ruhrgebiet Deutsch,West Deutsch': 'Rheinländisch',
+	'Deutschland Deutsch,Süddeutsch': 'Süddeutsch',
+	'Niederbayerisch': 'Bayrisch',
+	'Niedersächsisches Deutsch,Deutschland Deutsch': 'Deutsch',
+	'Nordrhein-Westfalen,Bundesdeutsch, Hochdeutsch,Deutschland Deutsch': 'Deutsch',
+	'Ostbelgien,Belgien,Belgisches Deutsch': 'Belgisch',
+	'Schweizerdeutsch': 'Schweizerdeutsch',
+	'Süddeutsch': 'Süddeutsch',
+	'Österreichisches Deutsch': 'Österreichisch',
+	'': 'Deutsch'
+}
 	
+
 ### emotion
 EMOTION_MODEL_NAME = "padmalcom/wav2vec2-large-emotion-detection-german"
 emotions = {'anger':0, 'boredom':1, 'disgust':2, 'fear':3, 'happiness':4, 'sadness':5, 'neutral':6}
@@ -71,7 +93,7 @@ def prepare_data():
 						formatted_sample['age'] = line['age']
 						formatted_sample['gender'] = line['gender']
 						formatted_sample['language'] = line['locale']
-						formatted_sample['accent'] = line['accents']
+						formatted_sample['accent'] = dialect_map[line['accents'].strip()]
 						formatted_sample['speaker'] = line['client_id']
 						
 						if (formatted_sample['sentence'] == None or formatted_sample['sentence'] == 'nan' or line['client_id'] == None or line['path'] == None or line['sentence'] == None or line['age'] == None or line['gender'] == None or line['locale'] == None or line['client_id'].strip() == '' or line['path'].strip() == '' or line['sentence'].strip() == '' or line['age'].strip() == '' or line['gender'].strip() == '' or line['locale'].strip() == '' or formatted_sample['sentence'].strip() == ''):
