@@ -7,6 +7,7 @@ from transformers import AutoModelForSequenceClassification, TFAutoModelForSeque
 import numpy as np
 from scipy.special import softmax
 import urllib.request
+import librosa
 
 RAW_DATA_FILE = os.path.join('common-voice-12','validated.tsv')
 TRAIN_FILE = os.path.join("common-voice-12", "train.csv")
@@ -62,6 +63,31 @@ def translate(text):
 	input_ids = translation_tokenizer.encode(text, return_tensors="pt")
 	outputs = translation_model.generate(input_ids)
 	return translation_tokenizer.decode(outputs[0], skip_special_tokens=True)
+	
+### speaker embedding
+def wav_to_mel_spectrogram(wav, sampling_rate=16000, mel_window_length = 25, mel_window_step = 10, mel_n_channels = 40):
+	"""
+	Derives a mel spectrogram ready to be used by the encoder from a preprocessed audio waveform.
+	Note: this not a log-mel spectrogram.
+	"""
+	frames = librosa.feature.melspectrogram(
+		y=wav,
+		sr=sampling_rate,
+		n_fft=int(sampling_rate * mel_window_length / 1000),
+		hop_length=int(sampling_rate * mel_window_step / 1000),
+		n_mels=mel_n_channels
+	)
+	return frames.astype(np.float32).T
+	
+def normalize_volume(wav, target_dBFS, increase_only=False, decrease_only=False):
+	#print("Target dbfs:", target_dBFS, "typ:", type(target_dBFS))
+	#print("wav type:", type(wav))
+	if increase_only and decrease_only:
+		raise ValueError("Both increase only and decrease only are set")
+	dBFS_change = target_dBFS - 10 * np.log10(np.mean(wav ** 2))
+	if (dBFS_change < 0 and increase_only) or (dBFS_change > 0 and decrease_only):
+		return wav
+	return wav * (10 ** (dBFS_change / 20))
 
 ### preparation
 def prepare_data():
@@ -116,6 +142,13 @@ def prepare_data():
 								wav_path = os.path.join('common-voice-12', "wavs", filename + ".wav")
 								sound.export(wav_path, format="wav")
 								formatted_sample['file'] = filename + ".wav"
+								
+								# mel spectrogramm for speaker embedding
+								wav, source_sr = librosa.load(wav_path, sr=None)
+								wav = normalize_volume(wav, -30, increase_only=True)
+								frames = wav_to_mel_spectrogram(wav)
+								out_fpath = os.path.join('common-voice-12', "wavs", filename + ".npy")
+								np.save(out_fpath, frames)
 								
 								# emotion classification
 								formatted_sample['emotion'] = emotion(wav_path)
