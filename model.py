@@ -166,7 +166,12 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 		output_hidden_states=None,
 		return_dict=None,
 		labels=None, # tuple: (ctc_labels, age_cls_labels, gender_cls_labels), shape=(batch_size, target_length)
+		hidden_init=None
 		):
+		
+		print("input type:", type(input_values), "shape:", input_values.shape, "Input in forward is:", input_values)
+		
+		print("labels type:", type(labels), "Labels are:", labels)
 
 		return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
@@ -186,6 +191,7 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 		logits_gender_cls = self.gender_cls_head(torch.mean(hidden_states, dim=1))
 		
 		#speaker embedding
+		print("input values:", input_values.shape)
 		utterances = hidden_states
 		out, (hidden, cell) = self.lstm(utterances, hidden_init)
 		
@@ -201,11 +207,13 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 			loss_ctc = self._ctc_loss(logits_ctc, labels[0], input_values, attention_mask)
 			loss_age_cls = self._cls_loss(logits_age_cls, labels[1], self.age_cls_weights)
 			loss_gender_cls = self._cls_loss(logits_gender_cls, labels[2], self.gender_cls_weights)
-			loss_speaker_embedding = self._speaker_embedding_loss(embeds)
+			#loss_speaker_embedding = self._speaker_embedding_loss(embeds)
+			loss_speaker_embedding = 0
 			print("Loss speaker embedding:", loss_speaker_embedding, "loss age cls:", loss_age_cls, "loss gender cls:", loss_gender_cls, "loss ctc:", loss_ctc)
 			loss = loss_age_cls + loss_gender_cls + self.alpha * loss_ctc + loss_speaker_embedding
 		
 		return CausalLMOutput(
+			#loss=loss, logits=(logits_ctc, logits_age_cls, logits_gender_cls, embeds), hidden_states=outputs.hidden_states, attentions=outputs.attentions
 			loss=loss, logits=(logits_ctc, logits_age_cls, logits_gender_cls, embeds), hidden_states=outputs.hidden_states, attentions=outputs.attentions
 		)
 

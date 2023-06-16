@@ -63,6 +63,13 @@ if __name__ == "__main__":
 		
 	dataset = dataset.map(remove_special_characters)
 	
+	# speaker embedding - read mel spectrogram
+	def add_melsprectrogramm(batch):
+		npy_file = os.path.join("common-voice-12", "wavs", batch["file"][:-4] + ".npy")
+		batch["mel"] = torch.from_numpy(np.load(npy_file))
+		return batch
+	dataset = dataset.map(add_melsprectrogramm)
+	
 	# create processor
 	feature_extractor = Wav2Vec2FeatureExtractor(feature_size=1, sampling_rate=16000, padding_value=0.0, do_normalize=True, return_attention_mask=False)
 	
@@ -157,7 +164,13 @@ if __name__ == "__main__":
 
 			for i in range(len(age_cls_labels)):
 				batch["labels"][i].append(age_cls_labels[i]) # batch["labels"] element has to be a single list
-
+				
+			print("len mel:", len(batch["mel"]))
+			for i in range(len(batch["mel"])):
+				#print("mel type:", type(batch["mel"][i]), "is:", batch["mel"][i])
+				print("len batch item:", len(batch["mel"][i]))
+				batch["labels"][i].append(batch["mel"][i])
+				
 		# the last items in the labels list are: gender label and age label
 		return batch
 		
@@ -167,7 +180,7 @@ if __name__ == "__main__":
 		batched=True,
 		num_proc=data_args.preprocessing_num_workers,
 	)
-	
+		
 	val_dataset = val_dataset.map(
 		prepare_dataset,
 		batch_size=training_args.per_device_train_batch_size,

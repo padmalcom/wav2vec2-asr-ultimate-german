@@ -14,6 +14,10 @@ class DataCollatorCTCWithPadding:
 		# split inputs and labels since they have to be of different lenghts and need
 		# different padding methods
 		input_features = [{"input_values": feature["input_values"]} for feature in features]
+		
+		print("Batch in collator:", features[0]["labels"])
+		#input_mels = [{"mels": feature["mel"]} for feature in features]
+		#print("mel in collator:", mels.shape)
 		if self.audio_only is False:
 			label_features = [{"input_ids": feature["labels"][:-2]} for feature in features]
 			age_cls_labels = [feature["labels"][-1] for feature in features]
