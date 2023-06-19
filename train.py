@@ -158,19 +158,27 @@ if __name__ == "__main__":
 			gender_cls_labels = list(map(lambda e: cls_gender_label_map[e], batch[data_args.gender_column]))
 			with processor.as_target_processor():
 				batch["labels"] = processor(batch[data_args.target_text_column]).input_ids
-
+			
+			# should all have the same length
+			#print("Len inputs: ", len(batch["labels"]), "len gender:", len(gender_cls_labels), "len age:", len(age_cls_labels), "len mel:", len(batch["mel"]))
+			
 			for i in range(len(gender_cls_labels)):
 				batch["labels"][i].append(gender_cls_labels[i]) # batch["labels"] element has to be a single list
 
 			for i in range(len(age_cls_labels)):
 				batch["labels"][i].append(age_cls_labels[i]) # batch["labels"] element has to be a single list
 				
-			print("len mel:", len(batch["mel"]))
+			# shape mel: (,40)
 			for i in range(len(batch["mel"])):
-				#print("mel type:", type(batch["mel"][i]), "is:", batch["mel"][i])
-				print("len batch item:", len(batch["mel"][i]))
-				batch["labels"][i].append(batch["mel"][i])
-				
+			
+				# then add the flattened mel
+				for j in range(len(batch["mel"][i])):
+					batch["labels"][i].extend(batch["mel"][i][j])
+					
+				# add an index at the end so that we can restore the 2d speaker embedding and the
+				# other labels afterwards.
+				batch["labels"][i].append(len(batch["mel"][i]) * 40)
+			
 		# the last items in the labels list are: gender label and age label
 		return batch
 		
