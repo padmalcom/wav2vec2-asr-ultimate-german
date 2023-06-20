@@ -63,10 +63,16 @@ if __name__ == "__main__":
 		
 	dataset = dataset.map(remove_special_characters)
 	
+	max_mel = 0
+	
 	# speaker embedding - read mel spectrogram
 	def add_melsprectrogramm(batch):
 		npy_file = os.path.join("common-voice-12", "wavs", batch["file"][:-4] + ".npy")
 		batch["mel"] = torch.from_numpy(np.load(npy_file))
+		global max_mel
+		if len(batch["mel"]) > max_mel:
+			max_mel = len(batch["mel"])
+			print("Longest mel is:", max_mel, "shape:", batch["mel"].shape)
 		return batch
 	dataset = dataset.map(add_melsprectrogramm)
 	

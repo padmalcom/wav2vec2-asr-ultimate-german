@@ -171,7 +171,7 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 		
 		print("input type:", type(input_values), "shape:", input_values.shape, "Input in forward is:", input_values)
 		
-		print("labels type:", type(labels), "Labels are:", labels)
+		print("labels type:", type(labels), "Labels are:", len(labels))
 
 		return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
@@ -192,7 +192,7 @@ class Wav2Vec2ForCTCnCLS(Wav2Vec2PreTrainedModel):
 		
 		#speaker embedding
 		print("input values:", input_values.shape)
-		utterances = hidden_states
+		utterances = input_values
 		out, (hidden, cell) = self.lstm(utterances, hidden_init)
 		
 		# We take only the hidden state of the last layer
